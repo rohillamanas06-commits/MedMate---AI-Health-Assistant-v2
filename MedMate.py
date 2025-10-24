@@ -163,51 +163,14 @@ if GEMINI_API_KEY:
         print(f"🔧 Configuring Gemini API...")
         genai.configure(api_key=GEMINI_API_KEY)
         
-        # List available models
-        try:
-            print(f"📋 Listing available Gemini models...")
-            available_models = genai.list_models()
-            print(f"✓ Available models:")
-            for model in available_models:
-                if 'generateContent' in model.supported_generation_methods:
-                    print(f"  - {model.name}")
-        except Exception as list_error:
-            print(f"⚠️ Could not list models: {list_error}")
-        
-        # Try different model names in order of preference (use latest available models)
-        model_names = [
-            'models/gemini-2.5-flash',           # Latest fast model
-            'models/gemini-2.0-flash',           # Stable fast model
-            'models/gemini-flash-latest',        # Auto-latest flash
-            'models/gemini-2.5-pro',             # Latest pro model
-            'models/gemini-pro-latest',          # Auto-latest pro
-            'gemini-2.5-flash',                  # Without prefix
-            'gemini-2.0-flash'                   # Without prefix
-        ]
-        model_initialized = False
-        
-        for model_name in model_names:
-            try:
-                print(f"🔄 Trying model: {model_name}")
-                gemini_model = genai.GenerativeModel(model_name)
-                # Test the model
-                test_response = gemini_model.generate_content("Hello, respond with 'OK' if you can read this.")
-                print(f"✓ Gemini model '{model_name}' initialized and tested successfully")
-                print(f"✓ Test response: {test_response.text[:50]}")
-                ai_provider = 'gemini'
-                model_initialized = True
-                break
-            except Exception as model_error:
-                print(f"⚠️ Model '{model_name}' failed: {str(model_error)[:100]}")
-                continue
-        
-        if not model_initialized:
-            print(f"❌ All Gemini models failed to initialize")
-            gemini_model = None
+        # Initialize model without testing (lazy loading)
+        # Use the most common model that should work
+        gemini_model = genai.GenerativeModel('models/gemini-2.5-flash')
+        ai_provider = 'gemini'
+        print(f"✓ Gemini API configured (model will be tested on first use)")
     except Exception as e:
-        print(f"✗ Gemini API initialization failed: {type(e).__name__}: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"⚠️ Gemini API configuration warning: {type(e).__name__}: {str(e)}")
+        gemini_model = None
 
 if not gemini_model and OPENAI_API_KEY:
     try:
