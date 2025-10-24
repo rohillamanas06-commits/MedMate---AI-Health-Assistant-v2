@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "MedMate.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "MedMate.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "GEMINI_API_KEY": "@gemini_api_key",
+    "GOOGLE_MAPS_API_KEY": "@google_maps_api_key",
+    "SECRET_KEY": "@secret_key",
+    "DATABASE_URL": "@database_url"
+  },
+  "build": {
+    "env": {
+      "VITE_API_URL": "https://your-project.vercel.app"
+    }
+  }
+}
