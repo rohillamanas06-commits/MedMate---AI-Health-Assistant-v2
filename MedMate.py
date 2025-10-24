@@ -46,14 +46,21 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
 # Enable CORS for frontend communication
 CORS(app, 
      supports_credentials=True, 
-     origins=['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:5173', 'http://127.0.0.1:5173'],
+     origins=[
+         'http://localhost:8080', 
+         'http://127.0.0.1:8080', 
+         'http://localhost:5173', 
+         'http://127.0.0.1:5173',
+         'https://med-mate-ai-health-assistant-v2.vercel.app',  # Your Vercel domain
+         'https://*.vercel.app'  # All Vercel preview deployments
+     ],
      allow_headers=['Content-Type', 'Authorization'],
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
 
 # Session configuration for proper cookie handling
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for cross-origin requests
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to False for localhost (True for HTTPS in production)
+app.config['SESSION_COOKIE_SECURE'] = True  # Set to True for HTTPS in production
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 
 # Database configuration - PostgreSQL for production, SQLite for local
