@@ -754,11 +754,13 @@ def get_fallback_hospitals():
 @app.route('/')
 def index():
     """API root - redirect to frontend"""
+    # Get frontend URL from environment or use default
+    frontend_url = os.getenv('FRONTEND_URL', 'https://med-mate-ai-health-assistant-v2.vercel.app')
     return jsonify({
         'message': 'MedMate API',
         'version': '1.0',
         'status': 'running',
-        'frontend': 'http://localhost:8080'
+        'frontend': frontend_url
     })
 
 # ==================== AUTHENTICATION ROUTES ====================
