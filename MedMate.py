@@ -11,7 +11,7 @@ if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
-from flask import Flask, request, jsonify, session, redirect, url_for
+from flask import Flask, request, jsonify, session, redirect, url_for, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -395,91 +395,107 @@ def analyze_image_with_vision(image_path, symptoms=""):
     Returns: Analysis results with possible conditions
     """
     try:
-        prompt = f"""Analyze this medical image. 
+        # Optimize image before analysis
+        from PIL import Image
+        img = Image.open(image_path)
+        
+        # Resize large images to improve performance
+        max_size = (1024, 1024)
+        if img.size[0] > max_size[0] or img.size[1] > max_size[1]:
+            img.thumbnail(max_size, Image.Resampling.LANCZOS)
+            print(f"📐 Image resized to: {img.size}")
+        
+        # Convert to RGB if needed
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        prompt = f"""Analyze this medical image quickly and efficiently. 
 Symptoms provided: {symptoms if symptoms else 'None provided'}
 
-Provide:
-1. What you observe in the image
-2. Possible conditions (with confidence %)
-3. Recommendations
-4. Whether professional medical evaluation is needed
-
-Respond in JSON format:
+Provide a concise analysis in JSON format:
 {{
-    "observation": "What you see in the image",
+    "observation": "Brief description of what you see",
     "conditions": [
-        {{"name": "Condition", "confidence": 50, "note": "Details"}}
+        {{"name": "Most likely condition", "confidence": 75, "note": "Brief details"}}
     ],
-    "recommendation": "What to do",
+    "recommendation": "Brief recommendation",
     "professional_evaluation": "Required/Recommended/Optional"
-}}"""
+}}
 
-        # Try Gemini Vision first
+Keep response concise and focused."""
+
+        # Try Gemini Vision first with timeout
         if gemini_model:
             try:
-                print(f"🔄 Calling Gemini Vision API for image: {image_path}")
-                from PIL import Image
-                img = Image.open(image_path)
-                print(f"📸 Image loaded: {img.size}, mode: {img.mode}")
+                print(f"🔄 Calling Gemini Vision API for image: {os.path.basename(image_path)}")
                 
-                response = gemini_model.generate_content([prompt, img])
-                result_text = response.text
-                print(f"📥 Gemini Vision raw response: {result_text[:200]}...")
+                # Use threading to implement timeout
+                import threading
+                import time
                 
-                # Clean up markdown code blocks if present
-                if '```json' in result_text:
-                    result_text = result_text.split('```json')[1].split('```')[0].strip()
-                elif '```' in result_text:
-                    result_text = result_text.split('```')[1].split('```')[0].strip()
+                result_container = {'data': None, 'error': None}
                 
-                result = json.loads(result_text)
-                print(f"✓ Gemini image analysis completed successfully")
-                return result
+                def call_gemini():
+                    try:
+                        response = gemini_model.generate_content([prompt, img])
+                        result_text = response.text
+                        
+                        # Clean up markdown code blocks if present
+                        if '```json' in result_text:
+                            result_text = result_text.split('```json')[1].split('```')[0].strip()
+                        elif '```' in result_text:
+                            result_text = result_text.split('```')[1].split('```')[0].strip()
+                        
+                        result = json.loads(result_text)
+                        result_container['data'] = result
+                    except Exception as e:
+                        result_container['error'] = e
+                
+                # Start the API call in a separate thread
+                thread = threading.Thread(target=call_gemini)
+                thread.daemon = True
+                thread.start()
+                
+                # Wait for result with timeout (30 seconds)
+                thread.join(timeout=30)
+                
+                if thread.is_alive():
+                    print("⏰ Gemini API call timed out, using fallback")
+                    return get_fallback_result(symptoms)
+                
+                if result_container['error']:
+                    raise result_container['error']
+                
+                if result_container['data']:
+                    print(f"✓ Gemini image analysis completed successfully")
+                    return result_container['data']
+                
             except Exception as e:
                 print(f"❌ Gemini Vision error: {type(e).__name__}: {str(e)}")
-                import traceback
-                traceback.print_exc()
-                print("⚠️ Falling back to alternative method...")
+                print("⚠️ Using fallback result...")
+                return get_fallback_result(symptoms)
         
-        # Fallback to OpenAI Vision
-        if openai_client:
-            try:
-                # Read and encode image
-                with open(image_path, 'rb') as image_file:
-                    image_data = base64.b64encode(image_file.read()).decode('utf-8')
-                
-                response = openai_client.chat.completions.create(
-                    model="gpt-4-vision-preview",
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": prompt},
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/jpeg;base64,{image_data}"
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    max_tokens=800
-                )
-                
-                result = json.loads(response.choices[0].message.content)
-                print(f"✓ OpenAI image analysis completed")
-                return result
-            except Exception as e:
-                print(f"OpenAI Vision error: {e}")
+        # Fallback if no AI model available
+        return get_fallback_result(symptoms)
         
-        # If both fail, use fallback
-        print("No vision AI available - using fallback")
-        return get_fallback_image_analysis()
-    
     except Exception as e:
-        print(f"Vision API Error: {e}")
-        return get_fallback_image_analysis()
+        print(f"❌ Image analysis error: {type(e).__name__}: {str(e)}")
+        return get_fallback_result(symptoms)
+
+def get_fallback_result(symptoms=""):
+    """Provide a fallback result when AI analysis fails"""
+    return {
+        "observation": "Image received but AI analysis unavailable. Please consult a medical professional.",
+        "conditions": [
+            {"name": "Professional evaluation needed", "confidence": 100, "note": "AI analysis service temporarily unavailable"}
+        ],
+        "recommendation": "Please consult with a healthcare professional for proper diagnosis.",
+        "professional_evaluation": "Required"
+    }
+
+def allowed_file(filename):
+    """Check if file extension is allowed"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def chat_with_assistant(message, chat_history=[]):
     """
@@ -918,7 +934,7 @@ def diagnose_image():
             user_id=session['user_id'],
             symptoms=symptoms if symptoms else 'Image analysis',
             diagnosis_result=json.dumps(result),
-            image_path=filepath
+            image_path=filename
         )
         db.session.add(diagnosis)
         db.session.commit()
@@ -927,7 +943,7 @@ def diagnose_image():
             'message': 'Image analysis completed',
             'diagnosis_id': diagnosis.id,
             'result': result,
-            'image_url': url_for('static', filename=f'uploads/{filename}')
+            'image_url': f"{request.url_root.rstrip('/')}{url_for('uploaded_file', filename=filename)}"
         }), 200
     
     except Exception as e:
@@ -952,7 +968,7 @@ def diagnosis_history():
                 'id': d.id,
                 'symptoms': d.symptoms,
                 'result': d.get_result_dict(),
-                'image_url': url_for('static', filename=d.image_path.replace('static/', '')) if d.image_path else None,
+                'image_url': f"{request.url_root.rstrip('/')}{url_for('uploaded_file', filename=os.path.basename(d.image_path))}" if d.image_path else None,
                 'created_at': d.created_at.isoformat()
             })
         
@@ -1217,6 +1233,32 @@ if not os.getenv('VERCEL'):
     except Exception as e:
         print(f"⚠️ Database initialization warning: {e}")
         print("Note: SQLite may not persist on Vercel. Consider using PostgreSQL for production.")
+
+# ==================== STATIC FILE SERVING ====================
+
+@app.route('/static/uploads/<filename>')
+def uploaded_file(filename):
+    """Serve uploaded files"""
+    try:
+        response = send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+        # Add CORS headers for static files
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        
+        # Set correct Content-Type based on file extension
+        if filename.lower().endswith('.webp'):
+            response.headers['Content-Type'] = 'image/webp'
+        elif filename.lower().endswith('.jpg') or filename.lower().endswith('.jpeg'):
+            response.headers['Content-Type'] = 'image/jpeg'
+        elif filename.lower().endswith('.png'):
+            response.headers['Content-Type'] = 'image/png'
+        elif filename.lower().endswith('.gif'):
+            response.headers['Content-Type'] = 'image/gif'
+            
+        return response
+    except FileNotFoundError:
+        return jsonify({'error': 'File not found'}), 404
 
 # ==================== MAIN ====================
 

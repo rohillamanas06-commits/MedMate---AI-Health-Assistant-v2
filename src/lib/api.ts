@@ -32,7 +32,16 @@ class ApiClient {
     };
 
     try {
-      const response = await fetch(url, config);
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch(url, {
+        ...config,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
       const data = await response.json();
 
       if (!response.ok) {
@@ -42,6 +51,9 @@ class ApiClient {
       return data as T;
     } catch (error) {
       if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Request timeout - please try again');
+        }
         throw error;
       }
       throw new Error('Network error occurred');

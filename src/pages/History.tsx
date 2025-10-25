@@ -119,6 +119,18 @@ export default function History() {
                             src={diagnosis.image_url}
                             alt="Medical scan"
                             className="rounded-lg max-h-48 object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              console.error('Image failed to load:', diagnosis.image_url);
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.innerHTML = '<div class="flex items-center justify-center h-32 bg-muted/50 rounded-lg"><span class="text-muted-foreground text-sm">Image not available</span></div>';
+                              }
+                            }}
+                            onLoad={() => {
+                              console.log('Image loaded successfully:', diagnosis.image_url);
+                            }}
                           />
                         </div>
                       )}

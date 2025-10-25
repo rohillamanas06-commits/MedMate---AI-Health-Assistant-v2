@@ -1,18 +1,21 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, LogOut, User, Menu } from 'lucide-react';
+import { Activity, LogOut, User, Menu, Settings, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useState } from 'react';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
@@ -109,6 +112,15 @@ export const Navbar = () => {
                   <User className="h-4 w-4 mr-2" />
                   Profile
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={toggleTheme}>
+                  {theme === 'light' ? (
+                    <Moon className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Sun className="h-4 w-4 mr-2" />
+                  )}
+                  {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
@@ -140,6 +152,14 @@ export const Navbar = () => {
                   <Button variant="outline" onClick={() => handleNavigation('/profile')}>
                     <User className="h-4 w-4 mr-2" />
                     Profile
+                  </Button>
+                  <Button variant="outline" onClick={toggleTheme}>
+                    {theme === 'light' ? (
+                      <Moon className="h-4 w-4 mr-2" />
+                    ) : (
+                      <Sun className="h-4 w-4 mr-2" />
+                    )}
+                    {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
                   </Button>
                   <Button variant="outline" onClick={handleLogout}>
                     <LogOut className="h-4 w-4 mr-2" />

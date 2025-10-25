@@ -7,20 +7,22 @@ import {
   Brain,
   MessageSquare,
   MapPin,
-  TrendingUp,
+  ArrowRight,
+  AlertCircle,
   Calendar,
   Clock,
-  ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [recentDiagnoses, setRecentDiagnoses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -28,14 +30,28 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
+      setError(null);
       const response: any = await api.getDiagnosisHistory(1, 5);
       setRecentDiagnoses(response.diagnoses || []);
     } catch (error) {
-      toast.error('Failed to load dashboard data');
+      console.error('Dashboard data loading error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
+      // Don't show toast for dashboard loading errors to avoid spam
     } finally {
       setLoading(false);
     }
   };
+
+  // Add error boundary effect to prevent crashes
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('Dashboard error:', event.error);
+      setError('An unexpected error occurred');
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
 
   const quickActions = [
     {
@@ -69,7 +85,8 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background py-8">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background py-8">
       <div className="container max-w-7xl">
         {/* Welcome Header */}
         <div className="mb-8 animate-slide-up">
@@ -81,27 +98,6 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          {[
-            { label: 'Total Diagnoses', value: recentDiagnoses.length, icon: Activity, color: 'text-primary' },
-            { label: 'This Week', value: '3', icon: Calendar, color: 'text-secondary' },
-            { label: 'Accuracy Rate', value: '98%', icon: TrendingUp, color: 'text-accent' },
-            { label: 'Last Check', value: '2h ago', icon: Clock, color: 'text-primary' },
-          ].map((stat, index) => (
-            <Card
-              key={index}
-              className="p-6 hover-lift glass animate-fade-in"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
-              </div>
-              <div className="text-3xl font-bold mb-1">{stat.value}</div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
-            </Card>
-          ))}
-        </div>
 
         {/* Quick Actions */}
         <div className="mb-8">
@@ -149,6 +145,17 @@ export default function Dashboard() {
                 <div className="h-4 bg-muted rounded w-1/2 mx-auto"></div>
               </div>
             </Card>
+          ) : error ? (
+            <Card className="p-8 text-center glass">
+              <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive opacity-50" />
+              <h3 className="text-xl font-semibold mb-2">Unable to load diagnoses</h3>
+              <p className="text-muted-foreground mb-6">
+                {error}
+              </p>
+              <Button onClick={loadDashboardData} variant="outline">
+                Try Again
+              </Button>
+            </Card>
           ) : recentDiagnoses.length === 0 ? (
             <Card className="p-12 text-center glass">
               <Brain className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -191,6 +198,7 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
