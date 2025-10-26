@@ -1363,6 +1363,34 @@ def verify_reset_token():
         print(f"❌ Verify token error: {e}")
         return jsonify({'valid': False}), 200
 
+# Temporary admin endpoint to get latest reset link (remove in production)
+@app.route('/api/admin/latest-reset-link', methods=['GET'])
+def get_latest_reset_link():
+    """Get the latest password reset link for testing"""
+    try:
+        reset_token = PasswordResetToken.query.filter_by(used=False).order_by(PasswordResetToken.created_at.desc()).first()
+        
+        if not reset_token:
+            return jsonify({'error': 'No active reset tokens found'}), 404
+        
+        if not reset_token.is_valid():
+            return jsonify({'error': 'Token has expired'}), 400
+        
+        frontend_url = os.getenv('FRONTEND_URL', 'https://med-mate-ai-health-assistant-v2.vercel.app')
+        reset_link = f"{frontend_url}/reset-password?token={reset_token.token}"
+        
+        return jsonify({
+            'email': reset_token.user.email,
+            'reset_link': reset_link,
+            'token': reset_token.token,
+            'created_at': reset_token.created_at.isoformat(),
+            'expires_at': reset_token.expires_at.isoformat()
+        }), 200
+    
+    except Exception as e:
+        print(f"❌ Get latest reset link error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 # Google OAuth removed - using local authentication only
 
 # ==================== DIAGNOSIS ROUTES ====================
