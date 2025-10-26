@@ -6,6 +6,8 @@ interface User {
   id: number;
   username: string;
   email: string;
+  profile_picture?: string;
+  profile_picture_url?: string;
   created_at?: string;
 }
 

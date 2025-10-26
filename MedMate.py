@@ -14,6 +14,7 @@ if sys.platform == 'win32':
 from flask import Flask, request, jsonify, session, redirect, url_for, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
+from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
@@ -27,6 +28,8 @@ import secrets
 import threading
 from dotenv import load_dotenv
 import google.generativeai as genai
+import re
+from email_validator import validate_email, EmailNotValidError
 
 # Optional import for text-to-speech (not available in serverless)
 try:
@@ -111,10 +114,36 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Initialize database
 db = SQLAlchemy(app)
 
+# Email configuration
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')  # Your Gmail address
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')  # Your Gmail app password
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME', 'noreply@medmate.ai')
+
+# Initialize Flask-Mail after configuration
+mail = Mail(app)
+
 # Database initialization function for serverless
 def init_db():
     """Initialize database tables - called on each request in serverless"""
     try:
+        # Check if profile_picture column exists, if not add it
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            columns = [col['name'] for col in inspector.get_columns('user')]
+            if 'profile_picture' not in columns:
+                print("⚠️ Adding profile_picture column to user table...")
+                with db.engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS profile_picture VARCHAR(300)"))
+                    conn.commit()
+                print("✅ profile_picture column added successfully")
+        except Exception as migration_error:
+            print(f"⚠️ Migration check skipped (development mode): {migration_error}")
+        
         db.create_all()
         print("✅ Database tables created/verified successfully")
         return True
@@ -196,17 +225,32 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
+    profile_picture = db.Column(db.String(300), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     diagnoses = db.relationship('Diagnosis', backref='user', lazy=True, cascade='all, delete-orphan')
     chat_history = db.relationship('ChatHistory', backref='user', lazy=True, cascade='all, delete-orphan')
+    reset_tokens = db.relationship('PasswordResetToken', backref='user', lazy=True, cascade='all, delete-orphan')
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+class PasswordResetToken(db.Model):
+    """Password reset token model"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    token = db.Column(db.String(200), unique=True, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def is_valid(self):
+        """Check if token is valid and not expired"""
+        return not self.used and datetime.utcnow() < self.expires_at
 
 class Diagnosis(db.Model):
     """Store diagnosis history"""
@@ -243,6 +287,100 @@ class Hospital(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # ==================== HELPER FUNCTIONS ====================
+
+def validate_email_format(email):
+    """Validate email format using email-validator"""
+    try:
+        validate_email(email, check_deliverability=False)
+        return True
+    except EmailNotValidError:
+        return False
+
+def validate_password_strength(password):
+    """
+    Validate password strength
+    Requirements:
+    - At least 8 characters
+    - At least one uppercase letter
+    - At least one lowercase letter
+    - At least one digit
+    - At least one special character
+    """
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long"
+    
+    if not re.search(r'[A-Z]', password):
+        return False, "Password must contain at least one uppercase letter"
+    
+    if not re.search(r'[a-z]', password):
+        return False, "Password must contain at least one lowercase letter"
+    
+    if not re.search(r'\d', password):
+        return False, "Password must contain at least one digit"
+    
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        return False, "Password must contain at least one special character"
+    
+    return True, None
+
+def send_password_reset_email(user_email, reset_link):
+    """Send password reset email"""
+    try:
+        print(f"📧 Attempting to send email to: {user_email}")
+        print(f"📋 Mail config - Server: {app.config.get('MAIL_SERVER')}, Port: {app.config.get('MAIL_PORT')}")
+        print(f"📋 Mail config - Username: {app.config.get('MAIL_USERNAME')}")
+        
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+        
+        msg = Message(
+            subject='MedMate - Password Reset Request',
+            recipients=[user_email],
+            html=f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">MedMate</h1>
+                    <p style="color: white; margin: 10px 0 0 0;">AI-Powered Medical Assistant</p>
+                </div>
+                <div style="background: #f9f9f9; padding: 30px;">
+                    <h2 style="color: #333; margin-top: 0;">Password Reset Request</h2>
+                    <p style="color: #666; line-height: 1.6;">
+                        We received a request to reset your password for your MedMate account. 
+                        Click the button below to reset your password.
+                    </p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{reset_link}" 
+                           style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                  color: white; padding: 15px 40px; text-decoration: none; 
+                                  border-radius: 5px; font-weight: bold;">
+                            Reset Password
+                        </a>
+                    </div>
+                    <p style="color: #999; font-size: 14px; line-height: 1.6;">
+                        If you didn't request this, please ignore this email. Your password will remain unchanged.
+                    </p>
+                    <p style="color: #999; font-size: 12px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                        This link will expire in 1 hour for security reasons.
+                    </p>
+                </div>
+                <div style="background: #eee; padding: 20px; text-align: center;">
+                    <p style="color: #999; font-size: 12px; margin: 0;">
+                        © 2024 MedMate. All rights reserved.
+                    </p>
+                </div>
+            </div>
+            """,
+        )
+        
+        with app.app_context():
+            mail.send(msg)
+            print(f"✅ Email sent successfully to: {user_email}")
+        
+        return True
+    except Exception as e:
+        print(f"❌ Error sending email: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 def login_required(f):
     """Decorator to require login for routes"""
@@ -872,8 +1010,25 @@ def register():
         
         print(f"📝 Registration attempt: username={username}, email={email}")
         
+        # Validate all fields are provided
         if not all([username, email, password]):
             return jsonify({'error': 'All fields are required'}), 400
+        
+        # Validate username
+        if len(username) < 3 or len(username) > 20:
+            return jsonify({'error': 'Username must be between 3 and 20 characters'}), 400
+        
+        if not re.match(r'^[a-zA-Z0-9_]+$', username):
+            return jsonify({'error': 'Username can only contain letters, numbers, and underscores'}), 400
+        
+        # Validate email format
+        if not validate_email_format(email):
+            return jsonify({'error': 'Please enter a valid email address'}), 400
+        
+        # Validate password strength
+        is_valid, error_message = validate_password_strength(password)
+        if not is_valid:
+            return jsonify({'error': error_message}), 400
         
         # Check existing users
         existing_user = User.query.filter_by(username=username).first()
@@ -900,12 +1055,19 @@ def register():
         session['user_id'] = user.id
         session['username'] = user.username
         
+        # Get profile picture URL (will be None for new users)
+        profile_pic_url = None
+        if user.profile_picture:
+            profile_pic_url = f"{request.url_root.rstrip('/')}{url_for('uploaded_file', filename=user.profile_picture)}"
+        
         return jsonify({
             'message': 'Registration successful',
             'user': {
                 'id': user.id,
                 'username': user.username,
                 'email': user.email,
+                'profile_picture': user.profile_picture,
+                'profile_picture_url': profile_pic_url,
                 'created_at': user.created_at.isoformat() if user.created_at else None
             }
         }), 201
@@ -946,12 +1108,19 @@ def login():
         
         print(f"✅ Login successful: ID={user.id}, username={user.username}")
         
+        # Get profile picture URL
+        profile_pic_url = None
+        if user.profile_picture:
+            profile_pic_url = f"{request.url_root.rstrip('/')}{url_for('uploaded_file', filename=user.profile_picture)}"
+        
         return jsonify({
             'message': 'Login successful',
             'user': {
                 'id': user.id,
                 'username': user.username,
                 'email': user.email,
+                'profile_picture': user.profile_picture,
+                'profile_picture_url': profile_pic_url,
                 'created_at': user.created_at.isoformat() if user.created_at else None
             }
         }), 200
@@ -973,16 +1142,170 @@ def check_auth():
     """Check if user is authenticated"""
     if 'user_id' in session:
         user = User.query.get(session['user_id'])
+        profile_pic_url = None
+        if user.profile_picture:
+            profile_pic_url = f"{request.url_root.rstrip('/')}{url_for('uploaded_file', filename=user.profile_picture)}"
+        
         return jsonify({
             'authenticated': True,
             'user': {
                 'id': user.id,
                 'username': user.username,
                 'email': user.email,
+                'profile_picture': user.profile_picture,
+                'profile_picture_url': profile_pic_url,
                 'created_at': user.created_at.isoformat() if user.created_at else None
             }
         }), 200
     return jsonify({'authenticated': False}), 200
+
+@app.route('/api/forgot-password', methods=['POST'])
+def forgot_password():
+    """Handle forgot password request"""
+    print("=" * 50)
+    print("📧 FORGOT PASSWORD REQUEST RECEIVED")
+    print("=" * 50)
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        print(f"📧 Email received: {email}")
+        
+        if not email:
+            print("❌ No email provided")
+            return jsonify({'error': 'Email is required'}), 400
+        
+        # Validate email format
+        if not validate_email_format(email):
+            print("❌ Invalid email format")
+            return jsonify({'error': 'Please enter a valid email address'}), 400
+        
+        # Find user by email
+        print(f"🔍 Looking for user with email: {email}")
+        user = User.query.filter_by(email=email).first()
+        print(f"👤 User found: {user is not None}")
+        
+        # Always return success message (for security, don't reveal if email exists)
+        if user:
+            print(f"📝 Creating reset token for user: {user.email}")
+            # Generate reset token
+            token = secrets.token_urlsafe(32)
+            expires_at = datetime.utcnow() + timedelta(hours=1)
+            
+            # Create reset token
+            reset_token = PasswordResetToken(
+                user_id=user.id,
+                token=token,
+                expires_at=expires_at
+            )
+            
+            db.session.add(reset_token)
+            db.session.commit()
+            print(f"💾 Token saved to database")
+            
+            # Create reset link
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:8080')
+            reset_link = f"{frontend_url}/reset-password?token={token}"
+            print(f"🔗 Reset link: {reset_link}")
+            
+            # Send email
+            print(f"📧 Calling send_password_reset_email()...")
+            email_sent = send_password_reset_email(user.email, reset_link)
+            
+            if email_sent:
+                print(f"✅ Password reset email sent to: {user.email}")
+            else:
+                print(f"⚠️ Failed to send password reset email to: {user.email}")
+        else:
+            print(f"⚠️ No user found with email: {email}")
+        
+        print("=" * 50)
+        return jsonify({
+            'message': 'If an account with that email exists, we have sent password reset instructions.'
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Forgot password error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'An error occurred. Please try again later.'}), 500
+
+@app.route('/api/reset-password', methods=['POST'])
+def reset_password():
+    """Handle password reset"""
+    try:
+        data = request.get_json()
+        token = data.get('token')
+        new_password = data.get('password')
+        
+        if not token or not new_password:
+            return jsonify({'error': 'Token and new password are required'}), 400
+        
+        # Validate password strength
+        is_valid, error_message = validate_password_strength(new_password)
+        if not is_valid:
+            return jsonify({'error': error_message}), 400
+        
+        # Find reset token
+        reset_token = PasswordResetToken.query.filter_by(token=token).first()
+        
+        if not reset_token:
+            return jsonify({'error': 'Invalid or expired reset token'}), 400
+        
+        # Check if token is valid and not expired
+        if not reset_token.is_valid():
+            return jsonify({'error': 'Invalid or expired reset token'}), 400
+        
+        # Update user password
+        user = User.query.get(reset_token.user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        user.set_password(new_password)
+        
+        # Mark token as used
+        reset_token.used = True
+        
+        db.session.commit()
+        
+        print(f"✅ Password reset successful for user: {user.email}")
+        
+        return jsonify({
+            'message': 'Password reset successful. You can now login with your new password.'
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Reset password error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'An error occurred. Please try again later.'}), 500
+
+@app.route('/api/verify-reset-token', methods=['POST'])
+def verify_reset_token():
+    """Verify if reset token is valid"""
+    try:
+        data = request.get_json()
+        token = data.get('token')
+        
+        if not token:
+            return jsonify({'error': 'Token is required'}), 400
+        
+        reset_token = PasswordResetToken.query.filter_by(token=token).first()
+        
+        if not reset_token or not reset_token.is_valid():
+            return jsonify({'valid': False}), 200
+        
+        return jsonify({
+            'valid': True,
+            'user': {
+                'email': reset_token.user.email
+            }
+        }), 200
+    
+    except Exception as e:
+        print(f"❌ Verify token error: {e}")
+        return jsonify({'valid': False}), 200
 
 # Google OAuth removed - using local authentication only
 
@@ -1081,11 +1404,18 @@ def diagnosis_history():
         
         results = []
         for d in diagnoses.items:
+            # Construct image URL properly
+            image_url = None
+            if d.image_path:
+                # image_path is already just the filename, use it directly
+                filename = os.path.basename(d.image_path) if '/' in str(d.image_path) else str(d.image_path)
+                image_url = f"{request.url_root.rstrip('/')}/static/uploads/{filename}"
+            
             results.append({
                 'id': d.id,
                 'symptoms': d.symptoms,
                 'result': d.get_result_dict(),
-                'image_url': f"{request.url_root.rstrip('/')}{url_for('uploaded_file', filename=os.path.basename(d.image_path))}" if d.image_path else None,
+                'image_url': image_url,
                 'created_at': d.created_at.isoformat()
             })
         
@@ -1307,6 +1637,210 @@ def hospital_details(place_id):
         return jsonify(details), 200
     
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ==================== PROFILE MANAGEMENT ROUTES ====================
+
+@app.route('/api/profile', methods=['GET'])
+@login_required
+def get_profile():
+    """Get current user profile"""
+    try:
+        user = User.query.get(session['user_id'])
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        return jsonify({
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'profile_picture': user.profile_picture,
+                'created_at': user.created_at.isoformat() if user.created_at else None
+            }
+        }), 200
+    
+    except Exception as e:
+        print(f"❌ Get profile error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/profile/picture', methods=['POST'])
+@login_required
+def upload_profile_picture():
+    """Upload profile picture"""
+    try:
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image provided'}), 400
+        
+        file = request.files['image']
+        
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not allowed_file(file.filename):
+            return jsonify({'error': 'Invalid file type. Allowed: PNG, JPG, JPEG, GIF, BMP, WEBP'}), 400
+        
+        # Save file
+        filename = secure_filename(f"profile_{session['user_id']}_{datetime.now().timestamp()}_{file.filename}")
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        # Update user profile
+        user = User.query.get(session['user_id'])
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        print(f"📸 Uploading profile picture for user: {user.username}")
+        print(f"📁 Old profile picture: {user.profile_picture}")
+        
+        # Delete old profile picture if exists
+        if user.profile_picture:
+            old_picture_path = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(user.profile_picture))
+            if os.path.exists(old_picture_path):
+                try:
+                    os.remove(old_picture_path)
+                    print(f"🗑️ Deleted old profile picture: {old_picture_path}")
+                except Exception as e:
+                    print(f"⚠️ Could not delete old picture: {e}")
+        
+        user.profile_picture = filename
+        db.session.commit()
+        
+        # Verify it was saved
+        user_after = User.query.get(session['user_id'])
+        print(f"✅ Profile picture uploaded: {filename}")
+        print(f"💾 Profile picture saved in DB: {user_after.profile_picture}")
+        
+        return jsonify({
+            'message': 'Profile picture uploaded successfully',
+            'profile_picture': filename,
+            'image_url': f"{request.url_root.rstrip('/')}{url_for('uploaded_file', filename=filename)}"
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Profile picture upload error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/profile', methods=['PUT'])
+@login_required
+def update_profile():
+    """Update user profile"""
+    try:
+        data = request.get_json()
+        user = User.query.get(session['user_id'])
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Update username if provided
+        if 'username' in data:
+            new_username = data.get('username')
+            # Check if username is already taken by another user
+            existing_user = User.query.filter_by(username=new_username).first()
+            if existing_user and existing_user.id != user.id:
+                return jsonify({'error': 'Username already exists'}), 400
+            
+            # Validate username
+            if len(new_username) < 3 or len(new_username) > 20:
+                return jsonify({'error': 'Username must be between 3 and 20 characters'}), 400
+            
+            if not re.match(r'^[a-zA-Z0-9_]+$', new_username):
+                return jsonify({'error': 'Username can only contain letters, numbers, and underscores'}), 400
+            
+            user.username = new_username
+            session['username'] = new_username
+        
+        # Update email if provided
+        if 'email' in data:
+            new_email = data.get('email')
+            # Validate email format
+            if not validate_email_format(new_email):
+                return jsonify({'error': 'Please enter a valid email address'}), 400
+            
+            # Check if email is already taken by another user
+            existing_user = User.query.filter_by(email=new_email).first()
+            if existing_user and existing_user.id != user.id:
+                return jsonify({'error': 'Email already exists'}), 400
+            
+            user.email = new_email
+        
+        db.session.commit()
+        
+        print(f"✅ Profile updated for user: {user.username}")
+        
+        return jsonify({
+            'message': 'Profile updated successfully',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'profile_picture': user.profile_picture,
+                'created_at': user.created_at.isoformat() if user.created_at else None
+            }
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Update profile error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/settings/delete-chat-history', methods=['DELETE'])
+@login_required
+def delete_chat_history():
+    """Delete all chat history for current user"""
+    try:
+        user = User.query.get(session['user_id'])
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Delete all chat history
+        deleted_count = ChatHistory.query.filter_by(user_id=session['user_id']).delete()
+        db.session.commit()
+        
+        print(f"✅ Deleted {deleted_count} chat history entries for user: {user.username}")
+        
+        return jsonify({
+            'message': 'Chat history deleted successfully',
+            'deleted_count': deleted_count
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Delete chat history error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/settings/delete-diagnosis-history', methods=['DELETE'])
+@login_required
+def delete_diagnosis_history():
+    """Delete all diagnosis history for current user"""
+    try:
+        user = User.query.get(session['user_id'])
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Delete all diagnosis history
+        deleted_count = Diagnosis.query.filter_by(user_id=session['user_id']).delete()
+        db.session.commit()
+        
+        print(f"✅ Deleted {deleted_count} diagnosis history entries for user: {user.username}")
+        
+        return jsonify({
+            'message': 'Diagnosis history deleted successfully',
+            'deleted_count': deleted_count
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Delete diagnosis history error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 # ==================== UTILITY ROUTES ====================

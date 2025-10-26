@@ -30,11 +30,13 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
+    const isFormData = options.body instanceof FormData;
+    
     const config: RequestInit = {
       ...options,
       credentials: 'include', // Important for session cookies
       headers: {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...options.headers,
       },
     };
@@ -89,6 +91,27 @@ class ApiClient {
 
   async checkAuth() {
     return this.request('/api/check-auth');
+  }
+
+  async forgotPassword(email: string) {
+    return this.request('/api/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(token: string, password: string) {
+    return this.request('/api/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    });
+  }
+
+  async verifyResetToken(token: string) {
+    return this.request('/api/verify-reset-token', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
   }
 
   // Diagnosis
@@ -193,6 +216,41 @@ class ApiClient {
   // Health Check
   async healthCheck() {
     return this.request('/api/health');
+  }
+
+  // Profile Management
+  async getProfile() {
+    return this.request('/api/profile');
+  }
+
+  async updateProfile(data: { username?: string; email?: string }) {
+    return this.request('/api/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async uploadProfilePicture(file: File) {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    return this.requestWithTimeout('/api/profile/picture', {
+      method: 'POST',
+      body: formData,
+    }, 30000);
+  }
+
+  // Settings
+  async deleteChatHistory() {
+    return this.request('/api/settings/delete-chat-history', {
+      method: 'DELETE',
+    });
+  }
+
+  async deleteDiagnosisHistory() {
+    return this.request('/api/settings/delete-diagnosis-history', {
+      method: 'DELETE',
+    });
   }
 }
 

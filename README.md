@@ -183,6 +183,11 @@ GOOGLE_MAPS_API_KEY=your_google_maps_key_here
 DATABASE_URL=postgresql://user:pass@host/db  # Defaults to SQLite
 SECRET_KEY=your_secret_key_here              # Auto-generated if not set
 OPENAI_API_KEY=your_openai_key_here          # Optional fallback
+
+# Email Configuration (for password reset)
+MAIL_USERNAME=your_gmail@gmail.com
+MAIL_PASSWORD=your_gmail_app_password        # See setup instructions below
+FRONTEND_URL=http://localhost:5173           # Your frontend URL
 ```
 
 #### Frontend (.env)
@@ -203,11 +208,21 @@ VITE_API_URL=http://localhost:5000
    - Create credentials
    - Copy API key to `.env`
 
+3. **Gmail App Password** (for password reset emails)
+   - Visit [Google Account Settings](https://myaccount.google.com/apppasswords)
+   - Generate a new app password for "Mail"
+   - Copy the 16-character password to `.env` as `MAIL_PASSWORD`
+   - Use your Gmail address for `MAIL_USERNAME`
+
 ## 🚀 Usage
 
 ### 1. Register/Login
-- Create an account or login with existing credentials
-- Your data is securely stored with encrypted passwords
+- Create an account with username, email, and strong password
+- Password requirements: 8+ characters, uppercase, lowercase, number, special character
+- Email validation and security checks
+- **Forgot Password**: Click "Forgot password?" on login page
+- Receive password reset email with secure link
+- Reset your password using the link (valid for 1 hour)
 
 ### 2. Diagnose Symptoms
 - Navigate to **Diagnose** page
@@ -260,6 +275,35 @@ Content-Type: application/json
 ```http
 GET /api/check-auth
 Returns: { authenticated: boolean, user: object }
+```
+
+```http
+POST /api/forgot-password
+Content-Type: application/json
+
+{
+  "email": "string"
+}
+```
+
+```http
+POST /api/reset-password
+Content-Type: application/json
+
+{
+  "token": "string",
+  "password": "string"
+}
+```
+
+```http
+POST /api/verify-reset-token
+Content-Type: application/json
+
+{
+  "token": "string"
+}
+Returns: { valid: boolean, user?: object }
 ```
 
 ### Diagnosis Endpoints

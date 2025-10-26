@@ -112,6 +112,10 @@ export const Navbar = () => {
                   <User className="h-4 w-4 mr-2" />
                   Profile
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={toggleTheme}>
                   {theme === 'light' ? (
                     <Moon className="h-4 w-4 mr-2" />
@@ -152,6 +156,10 @@ export const Navbar = () => {
                   <Button variant="outline" onClick={() => handleNavigation('/profile')}>
                     <User className="h-4 w-4 mr-2" />
                     Profile
+                  </Button>
+                  <Button variant="outline" onClick={() => handleNavigation('/settings')}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
                   </Button>
                   <Button variant="outline" onClick={toggleTheme}>
                     {theme === 'light' ? (

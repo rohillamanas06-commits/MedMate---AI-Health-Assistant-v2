@@ -9,3 +9,5 @@ requests==2.31.0
 python-dotenv==1.0.0
 Pillow==10.1.0
 psycopg2-binary==2.9.9
+flask-mail==0.9.1
+email-validator==2.1.0
