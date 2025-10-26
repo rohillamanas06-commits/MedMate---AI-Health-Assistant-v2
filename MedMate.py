@@ -1259,19 +1259,18 @@ def forgot_password():
             db.session.commit()
             print(f"💾 Token saved to database")
             
-            # Create reset link
+            # Log reset link instead of sending email (to prevent timeout)
             frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:8080')
             reset_link = f"{frontend_url}/reset-password?token={token}"
-            print(f"🔗 Reset link: {reset_link}")
-            
-            # Send email
-            print(f"📧 Calling send_password_reset_email()...")
-            email_sent = send_password_reset_email(user.email, reset_link)
-            
-            if email_sent:
-                print(f"✅ Password reset email sent to: {user.email}")
-            else:
-                print(f"⚠️ Failed to send password reset email to: {user.email}")
+            print("=" * 50)
+            print("🔗 PASSWORD RESET LINK (LOG THIS MANUALLY)")
+            print("=" * 50)
+            print(f"Email: {user.email}")
+            print(f"Reset Link: {reset_link}")
+            print("=" * 50)
+            print("⚠️ Note: Email sending disabled to prevent timeout")
+            print("Please manually send this reset link to the user")
+            print("=" * 50)
         else:
             print(f"⚠️ No user found with email: {email}")
         
@@ -1716,14 +1715,18 @@ def feedback():
         if not validate_email_format(email):
             return jsonify({'error': 'Please enter a valid email address'}), 400
         
-        # Send feedback email
-        email_sent = send_feedback_email(name, email, message)
+        # Log feedback to console instead of sending email (to prevent timeouts)
+        print("=" * 50)
+        print("📋 FEEDBACK SUBMISSION")
+        print("=" * 50)
+        print(f"Name: {name}")
+        print(f"Email: {email}")
+        print(f"Message: {message}")
+        print("=" * 50)
         
-        if email_sent:
-            print(f"✅ Feedback processed successfully")
-            return jsonify({'message': 'Feedback received successfully'}), 200
-        else:
-            return jsonify({'error': 'Failed to send feedback'}), 500
+        # Return success immediately to prevent timeout
+        print(f"✅ Feedback logged successfully")
+        return jsonify({'message': 'Feedback received successfully. Thank you for your input!'}), 200
     
     except Exception as e:
         print(f"❌ Feedback error: {e}")
