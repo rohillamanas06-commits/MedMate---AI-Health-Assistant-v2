@@ -37,34 +37,34 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background py-4 px-4 sm:py-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background py-3 px-3 sm:py-8">
       <div className="container max-w-4xl mx-auto">
-        <div className="mb-6 sm:mb-8 text-center animate-slide-up">
-          <h1 className="text-2xl sm:text-4xl font-bold mb-2 gradient-text">Settings</h1>
-          <p className="text-muted-foreground text-sm sm:text-lg">
+        <div className="mb-4 sm:mb-8 text-center animate-slide-up">
+          <h1 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2 gradient-text">Settings</h1>
+          <p className="text-muted-foreground text-xs sm:text-lg">
             Manage your account and privacy settings
           </p>
         </div>
 
-        <div className="grid gap-4 sm:gap-6">
+        <div className="grid gap-3 sm:gap-6">
           {/* Data Management Section */}
-          <Card className="p-6 sm:p-8 glass animate-fade-in">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4">Data Management</h2>
-            <p className="text-muted-foreground mb-6">
+          <Card className="p-4 sm:p-8 glass animate-fade-in">
+            <h2 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-4">Data Management</h2>
+            <p className="text-muted-foreground text-xs sm:text-base mb-4 sm:mb-6">
               Permanently delete your chat and diagnosis history from our database.
             </p>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {/* Delete Chat History */}
-              <Card className="p-4 border-2 border-destructive/20 bg-destructive/5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3 flex-1">
+              <Card className="p-3 sm:p-4 border-2 border-destructive/20 bg-destructive/5">
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                  <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
                     <div className="p-2 rounded-lg bg-destructive/10 flex-shrink-0">
-                      <MessageSquare className="h-5 w-5 text-destructive" />
+                      <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold mb-1">Chat History</h3>
-                      <p className="text-sm text-muted-foreground">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold mb-1 text-sm sm:text-base">Chat History</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         Permanently delete all your AI chat conversation history. This action cannot be undone.
                       </p>
                     </div>
@@ -75,6 +75,7 @@ export default function Settings() {
                         variant="destructive"
                         size="sm"
                         disabled={deletingChat}
+                        className="w-full sm:w-auto"
                       >
                         {deletingChat ? (
                           <>
@@ -117,15 +118,15 @@ export default function Settings() {
               </Card>
 
               {/* Delete Diagnosis History */}
-              <Card className="p-4 border-2 border-destructive/20 bg-destructive/5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3 flex-1">
+              <Card className="p-3 sm:p-4 border-2 border-destructive/20 bg-destructive/5">
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                  <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
                     <div className="p-2 rounded-lg bg-destructive/10 flex-shrink-0">
-                      <FileText className="h-5 w-5 text-destructive" />
+                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold mb-1">Diagnosis History</h3>
-                      <p className="text-sm text-muted-foreground">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold mb-1 text-sm sm:text-base">Diagnosis History</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         Permanently delete all your symptom diagnosis and image analysis history. This action cannot be undone.
                       </p>
                     </div>
@@ -136,6 +137,7 @@ export default function Settings() {
                         variant="destructive"
                         size="sm"
                         disabled={deletingDiagnosis}
+                        className="w-full sm:w-auto"
                       >
                         {deletingDiagnosis ? (
                           <>
@@ -180,12 +182,12 @@ export default function Settings() {
           </Card>
 
           {/* Warning Card */}
-          <Card className="p-4 sm:p-6 bg-yellow-500/10 border-yellow-500/20">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-yellow-600 mb-1">Important Notice</h3>
-                <p className="text-sm text-muted-foreground">
+          <Card className="p-3 sm:p-6 bg-yellow-500/10 border-yellow-500/20">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-yellow-600 mb-1 text-sm sm:text-base">Important Notice</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Deleting your history is permanent and irreversible. Once deleted, you will not be able to recover any of your data. 
                   Make sure you really want to delete this information before proceeding.
                 </p>
