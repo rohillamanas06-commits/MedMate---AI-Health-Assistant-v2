@@ -10,67 +10,67 @@ export default function Profile() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background py-8">
-      <div className="container max-w-4xl">
-        <div className="mb-8 text-center animate-slide-up">
-          <h1 className="text-4xl font-bold mb-2 gradient-text">Your Profile</h1>
-          <p className="text-muted-foreground text-lg">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background py-4 px-4 sm:py-8">
+      <div className="container max-w-4xl mx-auto">
+        <div className="mb-6 sm:mb-8 text-center animate-slide-up">
+          <h1 className="text-2xl sm:text-4xl font-bold mb-2 gradient-text">Your Profile</h1>
+          <p className="text-muted-foreground text-sm sm:text-lg">
             Manage your account information
           </p>
         </div>
 
-        <div className="grid gap-6">
+        <div className="grid gap-4 sm:gap-6">
           {/* Profile Card */}
-          <Card className="p-8 glass animate-fade-in">
-            <div className="flex items-center gap-6 mb-6">
-              <Avatar className="h-24 w-24 bg-gradient-to-br from-primary to-accent">
-                <div className="flex items-center justify-center h-full w-full text-white text-3xl font-bold">
+          <Card className="p-4 sm:p-8 glass animate-fade-in">
+            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 mb-6">
+              <Avatar className="h-16 w-16 sm:h-24 sm:w-24 bg-gradient-to-br from-primary to-accent">
+                <div className="flex items-center justify-center h-full w-full text-white text-xl sm:text-3xl font-bold">
                   {user.username.charAt(0).toUpperCase()}
                 </div>
               </Avatar>
-              <div>
-                <h2 className="text-3xl font-bold mb-1">{user.username}</h2>
-                <p className="text-muted-foreground">{user.email}</p>
+              <div className="text-center sm:text-left">
+                <h2 className="text-xl sm:text-3xl font-bold mb-1">{user.username}</h2>
+                <p className="text-muted-foreground text-sm sm:text-base break-all">{user.email}</p>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <Card className="p-4 bg-muted/50">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <Card className="p-3 sm:p-4 bg-muted/50">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <User className="h-5 w-5 text-primary" />
+                  <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                    <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Username</p>
-                    <p className="font-semibold">{user.username}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground">Username</p>
+                    <p className="font-semibold text-sm sm:text-base truncate">{user.username}</p>
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-4 bg-muted/50">
+              <Card className="p-3 sm:p-4 bg-muted/50">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Mail className="h-5 w-5 text-primary" />
+                  <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                    <Mail className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-semibold">{user.email}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground">Email</p>
+                    <p className="font-semibold text-sm sm:text-base truncate">{user.email}</p>
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-4 bg-muted/50">
+              <Card className="p-3 sm:p-4 bg-muted/50">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Calendar className="h-5 w-5 text-primary" />
+                  <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Member Since</p>
-                    <p className="font-semibold">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground">Member Since</p>
+                    <p className="font-semibold text-sm sm:text-base">
                       {user.created_at 
                         ? new Date(user.created_at).toLocaleDateString('en-US', { 
                             year: 'numeric', 
-                            month: 'long', 
+                            month: 'short', 
                             day: 'numeric' 
                           })
                         : 'N/A'}
@@ -79,14 +79,14 @@ export default function Profile() {
                 </div>
               </Card>
 
-              <Card className="p-4 bg-muted/50">
+              <Card className="p-3 sm:p-4 bg-muted/50">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Activity className="h-5 w-5 text-primary" />
+                  <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                    <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Account ID</p>
-                    <p className="font-semibold">#{user.id}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground">Account ID</p>
+                    <p className="font-semibold text-sm sm:text-base">#{user.id}</p>
                   </div>
                 </div>
               </Card>
