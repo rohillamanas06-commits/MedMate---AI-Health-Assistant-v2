@@ -90,7 +90,7 @@ class ApiClient {
   }
 
   async checkAuth() {
-    return this.request('/api/check-auth');
+    return this.requestWithTimeout('/api/check-auth', {}, 5000); // 5 second timeout for fast auth check
   }
 
   async forgotPassword(email: string) {

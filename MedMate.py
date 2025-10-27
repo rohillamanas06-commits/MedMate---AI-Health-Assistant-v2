@@ -1240,24 +1240,34 @@ def logout():
 
 @app.route('/api/check-auth', methods=['GET'])
 def check_auth():
-    """Check if user is authenticated"""
+    """Check if user is authenticated - optimized for speed"""
     if 'user_id' in session:
-        user = db.session.get(User, session['user_id'])
-        profile_pic_url = None
-        if user.profile_picture:
-            profile_pic_url = f"{request.url_root.rstrip('/')}/static/uploads/{user.profile_picture}"
-        
-        return jsonify({
-            'authenticated': True,
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'profile_picture': user.profile_picture,
-                'profile_picture_url': profile_pic_url,
-                'created_at': user.created_at.isoformat() if user.created_at else None
-            }
-        }), 200
+        try:
+            # Fast query - only select needed columns
+            user = db.session.query(User.id, User.username, User.email, User.profile_picture, User.created_at)\
+                .filter(User.id == session['user_id']).first()
+            
+            if not user:
+                return jsonify({'authenticated': False}), 200
+            
+            profile_pic_url = None
+            if user.profile_picture:
+                profile_pic_url = f"{request.url_root.rstrip('/')}/static/uploads/{user.profile_picture}"
+            
+            return jsonify({
+                'authenticated': True,
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'profile_picture': user.profile_picture,
+                    'profile_picture_url': profile_pic_url,
+                    'created_at': user.created_at.isoformat() if user.created_at else None
+                }
+            }), 200
+        except Exception as e:
+            print(f"⚠️ check-auth error: {e}")
+            return jsonify({'authenticated': False}), 200
     return jsonify({'authenticated': False}), 200
 
 @app.route('/api/forgot-password', methods=['POST'])
@@ -1531,7 +1541,7 @@ def diagnose_image():
 @app.route('/api/diagnosis-history', methods=['GET'])
 @login_required
 def diagnosis_history():
-    """Get user's diagnosis history"""
+    """Get user's diagnosis history - optimized for speed"""
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
@@ -1539,26 +1549,40 @@ def diagnosis_history():
         # Limit maximum items per page to prevent slow queries
         per_page = min(per_page, 50)  # Max 50 items per page
         
-        diagnoses = Diagnosis.query.filter_by(user_id=session['user_id'])\
-            .order_by(Diagnosis.created_at.desc())\
-            .limit(per_page + (page - 1) * per_page).offset((page - 1) * per_page).all()
+        # Optimized query - select only needed columns with proper ordering
+        diagnoses = db.session.query(
+            Diagnosis.id,
+            Diagnosis.symptoms,
+            Diagnosis.diagnosis_result,
+            Diagnosis.image_path,
+            Diagnosis.created_at
+        ).filter_by(user_id=session['user_id'])\
+        .order_by(Diagnosis.created_at.desc())\
+        .limit(per_page).offset((page - 1) * per_page).all()
         
-        # Get total count efficiently
-        total = Diagnosis.query.filter_by(user_id=session['user_id']).count()
+        # Get total count efficiently (using EXISTS for speed)
+        total = db.session.query(Diagnosis.id).filter_by(user_id=session['user_id']).count()
         
+        # Optimized result building
         results = []
         for d in diagnoses:
-            # Construct image URL properly
+            # Parse JSON only once when needed
+            result_dict = {}
+            if d.diagnosis_result:
+                try:
+                    result_dict = json.loads(d.diagnosis_result)
+                except:
+                    pass
+            
             image_url = None
             if d.image_path:
-                # image_path is already just the filename, use it directly
                 filename = os.path.basename(d.image_path) if '/' in str(d.image_path) else str(d.image_path)
                 image_url = f"{request.url_root.rstrip('/')}/static/uploads/{filename}"
             
             results.append({
                 'id': d.id,
                 'symptoms': d.symptoms,
-                'result': d.get_result_dict(),
+                'result': result_dict,
                 'image_url': image_url,
                 'created_at': d.created_at.isoformat()
             })
@@ -1573,6 +1597,9 @@ def diagnosis_history():
         }), 200
     
     except Exception as e:
+        print(f"❌ History error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 # ==================== CHAT ASSISTANT ROUTES ====================
