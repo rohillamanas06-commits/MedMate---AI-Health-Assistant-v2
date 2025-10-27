@@ -93,6 +93,17 @@ class ApiClient {
     return this.requestWithTimeout('/api/check-auth', {}, 5000); // 5 second timeout for fast auth check
   }
 
+  async getGoogleAuthConfig() {
+    return this.request('/api/auth/google');
+  }
+
+  async handleGoogleCallback(token: string, googleId: string, email: string, name: string, picture: string) {
+    return this.request('/api/auth/google/callback', {
+      method: 'POST',
+      body: JSON.stringify({ token, google_id: googleId, email, name, picture }),
+    });
+  }
+
   async forgotPassword(email: string) {
     return this.request('/api/forgot-password', {
       method: 'POST',
