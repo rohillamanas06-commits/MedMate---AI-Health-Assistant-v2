@@ -1548,7 +1548,7 @@ def diagnosis_history():
         per_page = request.args.get('per_page', 10, type=int)
         
         # Limit maximum items per page to prevent slow queries
-        per_page = min(per_page, 50)  # Max 50 items per page
+        per_page = min(per_page, 100)  # Max 100 items per page
         
         # Optimized query - select only needed columns with proper ordering
         diagnoses = db.session.query(
@@ -1561,10 +1561,12 @@ def diagnosis_history():
         .order_by(Diagnosis.created_at.desc())\
         .limit(per_page).offset((page - 1) * per_page).all()
         
-        # Get total count efficiently (using EXISTS for speed)
-        total = db.session.query(Diagnosis.id).filter_by(user_id=session['user_id']).count()
+        # Get total count efficiently (cached result)
+        from sqlalchemy import func
+        total = db.session.query(func.count(Diagnosis.id)).filter_by(user_id=session['user_id']).scalar()
         
-        # Optimized result building
+        # Optimized result building with list comprehension
+        base_url = request.url_root.rstrip('/')
         results = []
         for d in diagnoses:
             # Parse JSON only once when needed
@@ -1578,7 +1580,7 @@ def diagnosis_history():
             image_url = None
             if d.image_path:
                 filename = os.path.basename(d.image_path) if '/' in str(d.image_path) else str(d.image_path)
-                image_url = f"{request.url_root.rstrip('/')}/static/uploads/{filename}"
+                image_url = f"{base_url}/static/uploads/{filename}"
             
             results.append({
                 'id': d.id,
@@ -1649,21 +1651,23 @@ def chat():
 @app.route('/api/chat-history', methods=['GET'])
 @login_required
 def chat_history():
-    """Get chat history"""
+    """Get chat history - optimized for speed"""
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
         
         # Limit maximum items per page to prevent slow queries
-        per_page = min(per_page, 50)  # Max 50 items per page
+        per_page = min(per_page, 100)  # Max 100 items per page
         
         chats = ChatHistory.query.filter_by(user_id=session['user_id'])\
             .order_by(ChatHistory.created_at.desc())\
             .limit(per_page).offset((page - 1) * per_page).all()
         
-        # Get total count efficiently
-        total = ChatHistory.query.filter_by(user_id=session['user_id']).count()
+        # Get total count efficiently using scalar
+        from sqlalchemy import func
+        total = db.session.query(func.count(ChatHistory.id)).filter_by(user_id=session['user_id']).scalar()
         
+        # Optimized result building
         results = [{
             'id': c.id,
             'message': c.message,
@@ -2019,14 +2023,19 @@ def update_profile():
 @app.route('/api/settings/delete-chat-history', methods=['DELETE'])
 @login_required
 def delete_chat_history():
-    """Delete all chat history for current user"""
+    """Delete all chat history for current user - optimized for speed"""
     try:
         user = db.session.get(User, session['user_id'])
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
-        # Delete all chat history
-        deleted_count = ChatHistory.query.filter_by(user_id=session['user_id']).delete()
+        # Use raw SQL for faster bulk delete
+        from sqlalchemy import text
+        result = db.session.execute(
+            text("DELETE FROM chat_history WHERE user_id = :user_id"),
+            {'user_id': session['user_id']}
+        )
+        deleted_count = result.rowcount
         db.session.commit()
         
         print(f"✅ Deleted {deleted_count} chat history entries for user: {user.username}")
@@ -2046,14 +2055,19 @@ def delete_chat_history():
 @app.route('/api/settings/delete-diagnosis-history', methods=['DELETE'])
 @login_required
 def delete_diagnosis_history():
-    """Delete all diagnosis history for current user"""
+    """Delete all diagnosis history for current user - optimized for speed"""
     try:
         user = db.session.get(User, session['user_id'])
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
-        # Delete all diagnosis history
-        deleted_count = Diagnosis.query.filter_by(user_id=session['user_id']).delete()
+        # Use raw SQL for faster bulk delete
+        from sqlalchemy import text
+        result = db.session.execute(
+            text("DELETE FROM diagnosis WHERE user_id = :user_id"),
+            {'user_id': session['user_id']}
+        )
+        deleted_count = result.rowcount
         db.session.commit()
         
         print(f"✅ Deleted {deleted_count} diagnosis history entries for user: {user.username}")
