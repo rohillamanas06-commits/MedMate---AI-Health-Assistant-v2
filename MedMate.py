@@ -78,7 +78,7 @@ else:
     app.config['SESSION_COOKIE_SECURE'] = False  # HTTP for local
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Better for local development
 
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)  # Extended to 30 days
 
 # Database configuration - PostgreSQL for production, SQLite for local
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -178,7 +178,7 @@ def init_db():
         traceback.print_exc()
         return False
 
-# Hook to ensure database is initialized before each request
+# Hook to ensure database is initialized before each request and refresh session
 @app.before_request
 def ensure_db_initialized():
     """Ensure database tables exist before processing request"""
@@ -190,6 +190,11 @@ def ensure_db_initialized():
                 print(f"📊 Database URI: {app.config['SQLALCHEMY_DATABASE_URI'][:50]}...")
             else:
                 print("⚠️ Database initialization failed, but continuing...")
+    
+    # Refresh session expiration time on each request if user is authenticated
+    if 'user_id' in session:
+        session.permanent = True
+        session.modified = True  # This tells Flask to send a new cookie with updated expiration
 
 # Initialize text-to-speech engine
 tts_engine = None
