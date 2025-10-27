@@ -15,7 +15,7 @@ from flask import Flask, request, jsonify, session, redirect, url_for, send_from
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail, Email, To, Content
+from sendgrid.helpers.mail import Mail
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
