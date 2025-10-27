@@ -1470,15 +1470,23 @@ def google_auth():
             return jsonify({'error': 'Google OAuth not configured'}), 500
         
         # Return the Google Client ID for frontend
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:8080')
+        # Use different callback URLs for local vs production
+        if 'vercel.app' in frontend_url:
+            redirect_uri = frontend_url + '/login/google/auth'
+        else:
+            redirect_uri = frontend_url + '/auth/google/callback'
+        
         return jsonify({
             'client_id': GOOGLE_CLIENT_ID,
-            'redirect_uri': os.getenv('FRONTEND_URL', 'http://localhost:8080') + '/auth/google/callback'
+            'redirect_uri': redirect_uri
         }), 200
     except Exception as e:
         print(f"❌ Google auth error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/auth/google/callback', methods=['POST'])
+@app.route('/login/google/auth', methods=['POST'])
 def google_callback():
     """Handle Google OAuth callback and create/login user"""
     try:

@@ -98,7 +98,11 @@ class ApiClient {
   }
 
   async handleGoogleCallback(token: string, googleId: string, email: string, name: string, picture: string) {
-    return this.request('/api/auth/google/callback', {
+    // Use different endpoints for local vs production
+    const isProduction = window.location.hostname.includes('vercel.app');
+    const endpoint = isProduction ? '/login/google/auth' : '/api/auth/google/callback';
+    
+    return this.request(endpoint, {
       method: 'POST',
       body: JSON.stringify({ token, google_id: googleId, email, name, picture }),
     });
