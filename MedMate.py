@@ -400,7 +400,7 @@ def send_password_reset_email(user_email, reset_link):
         message = Mail(
             from_email='rohillamanas06@gmail.com',
             to_emails=user_email,
-            subject='MedMate - Password Reset Request',
+            subject='Reset Your MedMate Password',
             html_content=f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
@@ -436,6 +436,8 @@ def send_password_reset_email(user_email, reset_link):
             </div>
             """,
         )
+        
+        message.reply_to = 'rohillamanas06@gmail.com'
         
         response = sg.send(message)
         print(f"✅ Password reset email sent successfully to: {user_email}")
