@@ -78,10 +78,10 @@ class ApiClient {
     });
   }
 
-  async login(username: string, password: string) {
+  async login(username: string, password: string, rememberMe: boolean = false) {
     return this.request('/api/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, remember_me: rememberMe }),
     });
   }
 

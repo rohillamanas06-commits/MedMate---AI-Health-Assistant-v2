@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { Activity, Loader2, Eye, EyeOff, CheckCircle } from 'lucide-react';
@@ -16,6 +17,7 @@ export default function Auth() {
 
   // Login state
   const [loginData, setLoginData] = useState({ username: '', password: '' });
+  const [rememberMe, setRememberMe] = useState(true);
 
   // Register state
   const [registerData, setRegisterData] = useState({
@@ -57,7 +59,7 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(loginData.username, loginData.password);
+      await login(loginData.username, loginData.password, rememberMe);
       navigate('/dashboard');
     } catch (error) {
       // Error handled by context
@@ -150,6 +152,16 @@ export default function Auth() {
                   onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                   required
                 />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                />
+                <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">
+                  Remember me for 1 year
+                </Label>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (

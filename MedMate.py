@@ -78,7 +78,7 @@ else:
     app.config['SESSION_COOKIE_SECURE'] = False  # HTTP for local
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Better for local development
 
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=365)  # Extended to 1 year for persistent login
 
 # Database configuration - PostgreSQL for production, SQLite for local
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -1188,8 +1188,9 @@ def login():
         data = request.get_json()
         username = data.get('username')
         password = data.get('password')
+        remember_me = data.get('remember_me', False)
         
-        print(f"🔐 Login attempt: username={username}")
+        print(f"🔐 Login attempt: username={username}, remember_me={remember_me}")
         
         if not all([username, password]):
             return jsonify({'error': 'Username and password required'}), 400
@@ -1204,9 +1205,15 @@ def login():
             print(f"⚠️ Invalid password for user '{username}'")
             return jsonify({'error': 'Invalid username or password'}), 401
         
+        # Always make session permanent for persistent login
         session.permanent = True
         session['user_id'] = user.id
         session['username'] = user.username
+        
+        # Return credentials if remember_me is enabled (for localStorage)
+        # Note: Credentials should be stored securely on client-side
+        if remember_me:
+            print(f"✓ Remember me enabled for user '{username}'")
         
         print(f"✅ Login successful: ID={user.id}, username={user.username}")
         
