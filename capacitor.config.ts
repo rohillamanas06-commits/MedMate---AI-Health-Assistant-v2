@@ -11,9 +11,7 @@ const config: CapacitorConfig = {
     androidScheme: 'https'
   },
   android: {
-    allowMixedContent: true,
-    // Enable hardware back button
-    androidHardwareBack: true
+    allowMixedContent: true
   }
 };
 
