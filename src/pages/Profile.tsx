@@ -108,11 +108,11 @@ export default function Profile() {
           <Card className="p-4 sm:p-8 glass animate-fade-in">
             <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 mb-6">
               <div className="relative">
-                <Avatar className="h-20 w-20 sm:h-32 sm:w-32 border-4 border-primary/20 ring-4 ring-primary/10">
+                <Avatar className="h-20 w-20 sm:h-32 sm:w-32 border-4 border-primary/20">
                   {profilePicture ? (
                     <AvatarImage src={profilePicture} alt={user.username} />
                   ) : (
-                    <AvatarFallback className="bg-gradient-to-br from-primary via-purple-600 to-accent text-white text-3xl sm:text-5xl font-bold flex items-center justify-center">
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-2xl sm:text-4xl font-bold">
                       {user.username.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   )}
