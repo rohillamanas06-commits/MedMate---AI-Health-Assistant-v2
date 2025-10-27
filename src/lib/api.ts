@@ -62,7 +62,7 @@ class ApiClient {
     } catch (error) {
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          throw new Error('Request timeout - please try again');
+          throw new Error('The request is taking longer than expected. Please try again.');
         }
         throw error;
       }
@@ -129,7 +129,7 @@ class ApiClient {
 
     // Use longer timeout for image analysis
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout for AI processing
 
     try {
       const response = await fetch(`${this.baseUrl}/api/diagnose-image`, {

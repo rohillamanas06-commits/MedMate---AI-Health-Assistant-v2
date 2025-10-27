@@ -602,11 +602,11 @@ Respond in JSON format:
                 thread.daemon = True
                 thread.start()
                 
-                # Wait for result with timeout (45 seconds for text analysis)
-                thread.join(timeout=45)
+                # Wait for result with timeout (60 seconds for text analysis)
+                thread.join(timeout=60)
                 
                 if thread.is_alive():
-                    print("⏰ Gemini API call timed out, using fallback")
+                    print("⏰ Gemini API call timed out after 60s, using fallback")
                     return get_fallback_diagnosis(symptoms)
                 
                 if result_container['error']:
@@ -743,11 +743,11 @@ Keep response concise and focused."""
                 thread.daemon = True
                 thread.start()
                 
-                # Wait for result with timeout (30 seconds)
-                thread.join(timeout=30)
+                # Wait for result with timeout (60 seconds for image analysis)
+                thread.join(timeout=60)
                 
                 if thread.is_alive():
-                    print("⏰ Gemini API call timed out, using fallback")
+                    print("⏰ Gemini API call timed out after 60s, using fallback")
                     return get_fallback_result(symptoms)
                 
                 if result_container['error']:
@@ -1352,15 +1352,19 @@ def reset_password():
         if not is_valid:
             return jsonify({'error': error_message}), 400
         
-        # Find reset token
-        reset_token = PasswordResetToken.query.filter_by(token=token).first()
+        # Find reset token with timeout protection
+        try:
+            reset_token = PasswordResetToken.query.filter_by(token=token).first()
+        except Exception as query_error:
+            print(f"❌ Database query error: {query_error}")
+            return jsonify({'error': 'Database query failed. Please try again.'}), 500
         
         if not reset_token:
-            return jsonify({'error': 'Invalid or expired reset token'}), 400
+            return jsonify({'error': 'This reset link is invalid or has already been used. Please request a new one.'}), 400
         
         # Check if token is valid and not expired
         if not reset_token.is_valid():
-            return jsonify({'error': 'Invalid or expired reset token'}), 400
+            return jsonify({'error': 'This reset link has expired. Please request a new password reset.'}), 400
         
         # Update user password
         user = db.session.get(User, reset_token.user_id)
@@ -1532,12 +1536,18 @@ def diagnosis_history():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         
+        # Limit maximum items per page to prevent slow queries
+        per_page = min(per_page, 50)  # Max 50 items per page
+        
         diagnoses = Diagnosis.query.filter_by(user_id=session['user_id'])\
             .order_by(Diagnosis.created_at.desc())\
-            .paginate(page=page, per_page=per_page, error_out=False)
+            .limit(per_page + (page - 1) * per_page).offset((page - 1) * per_page).all()
+        
+        # Get total count efficiently
+        total = Diagnosis.query.filter_by(user_id=session['user_id']).count()
         
         results = []
-        for d in diagnoses.items:
+        for d in diagnoses:
             # Construct image URL properly
             image_url = None
             if d.image_path:
@@ -1553,10 +1563,12 @@ def diagnosis_history():
                 'created_at': d.created_at.isoformat()
             })
         
+        total_pages = (total + per_page - 1) // per_page if total > 0 else 0
+        
         return jsonify({
             'diagnoses': results,
-            'total': diagnoses.total,
-            'pages': diagnoses.pages,
+            'total': total,
+            'pages': total_pages,
             'current_page': page
         }), 200
     
@@ -1614,21 +1626,29 @@ def chat_history():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
         
+        # Limit maximum items per page to prevent slow queries
+        per_page = min(per_page, 50)  # Max 50 items per page
+        
         chats = ChatHistory.query.filter_by(user_id=session['user_id'])\
             .order_by(ChatHistory.created_at.desc())\
-            .paginate(page=page, per_page=per_page, error_out=False)
+            .limit(per_page).offset((page - 1) * per_page).all()
+        
+        # Get total count efficiently
+        total = ChatHistory.query.filter_by(user_id=session['user_id']).count()
         
         results = [{
             'id': c.id,
             'message': c.message,
             'response': c.response,
             'created_at': c.created_at.isoformat()
-        } for c in chats.items]
+        } for c in chats]
+        
+        total_pages = (total + per_page - 1) // per_page if total > 0 else 0
         
         return jsonify({
             'chats': results,
-            'total': chats.total,
-            'pages': chats.pages,
+            'total': total,
+            'pages': total_pages,
             'current_page': page
         }), 200
     
