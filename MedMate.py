@@ -1470,9 +1470,15 @@ def google_auth():
             return jsonify({'error': 'Google OAuth not configured'}), 500
         
         # Return the Google Client ID for frontend
-        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:8080')
+        # Default to Vercel URL for production, localhost for development
+        default_frontend = 'https://med-mate-ai-health-assistant-v2.vercel.app'
+        if os.getenv('VERCEL'):
+            frontend_url = os.getenv('FRONTEND_URL', default_frontend)
+        else:
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:8080')
+        
         # Use different callback URLs for local vs production
-        if 'vercel.app' in frontend_url:
+        if 'vercel.app' in frontend_url or os.getenv('VERCEL'):
             redirect_uri = frontend_url + '/login/google/auth'
         else:
             redirect_uri = frontend_url + '/auth/google/callback'
