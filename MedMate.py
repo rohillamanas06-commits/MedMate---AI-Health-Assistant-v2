@@ -1219,7 +1219,7 @@ def logout():
 def check_auth():
     """Check if user is authenticated"""
     if 'user_id' in session:
-        user = User.query.get(session['user_id'])
+        user = db.session.get(User, session['user_id'])
         profile_pic_url = None
         if user.profile_picture:
             profile_pic_url = f"{request.url_root.rstrip('/')}/static/uploads/{user.profile_picture}"
@@ -1340,7 +1340,7 @@ def reset_password():
             return jsonify({'error': 'Invalid or expired reset token'}), 400
         
         # Update user password
-        user = User.query.get(reset_token.user_id)
+        user = db.session.get(User, reset_token.user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
@@ -1799,7 +1799,7 @@ def feedback():
 def get_profile():
     """Get current user profile"""
     try:
-        user = User.query.get(session['user_id'])
+        user = db.session.get(User, session['user_id'])
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
@@ -1839,7 +1839,7 @@ def upload_profile_picture():
         file.save(filepath)
         
         # Update user profile
-        user = User.query.get(session['user_id'])
+        user = db.session.get(User, session['user_id'])
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
@@ -1886,7 +1886,7 @@ def update_profile():
     """Update user profile"""
     try:
         data = request.get_json()
-        user = User.query.get(session['user_id'])
+        user = db.session.get(User, session['user_id'])
         
         if not user:
             return jsonify({'error': 'User not found'}), 404
@@ -1950,7 +1950,7 @@ def update_profile():
 def delete_chat_history():
     """Delete all chat history for current user"""
     try:
-        user = User.query.get(session['user_id'])
+        user = db.session.get(User, session['user_id'])
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
@@ -1977,7 +1977,7 @@ def delete_chat_history():
 def delete_diagnosis_history():
     """Delete all diagnosis history for current user"""
     try:
-        user = User.query.get(session['user_id'])
+        user = db.session.get(User, session['user_id'])
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
