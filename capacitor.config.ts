@@ -4,12 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.medmate.app',
   appName: 'MedMate',
   webDir: 'dist',
-  server: {
-    // Use your production API URL
-    url: 'https://med-mate-ai-health-assistant-v2.vercel.app',
-    cleartext: true,
-    androidScheme: 'https'
-  },
+  // Remove server config to use production build directly
   android: {
     allowMixedContent: true
   }
