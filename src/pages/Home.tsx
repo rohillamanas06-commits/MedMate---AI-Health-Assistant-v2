@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import heroImage from '@/assets/hero-medical.jpg';
 import diagnosisIcon from '@/assets/diagnosis-icon.png';
 import chatIcon from '@/assets/chat-icon.png';
+import founderImage from '@/assets/founder.jpg';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -319,6 +320,26 @@ export default function Home() {
                 and helps you locate nearby hospitals. We combine the power of artificial intelligence with 
                 medical expertise to deliver accurate, reliable health information.
               </p>
+              
+              {/* Founder/Developer Section */}
+              <div className="pt-6 border-t border-border">
+                <h3 className="text-2xl font-semibold mb-4">Meet the Developer</h3>
+                <div className="flex items-center gap-6">
+                  <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent rounded-full opacity-75 group-hover:opacity-100 blur transition-all"></div>
+                    <img 
+                      src={founderImage}
+                      alt="Manas Rohilla - Founder and Developer" 
+                      className="relative w-24 h-24 rounded-full object-cover border-4 border-background shadow-xl"
+                    />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-bold">Manas Rohilla</h4>
+                    <p className="text-muted-foreground">Founder and Developer</p>
+                  </div>
+                </div>
+              </div>
+              
               <div className="flex flex-wrap gap-4 pt-4">
                 <a 
                   href="https://www.instagram.com/manas_rohilla_" 
