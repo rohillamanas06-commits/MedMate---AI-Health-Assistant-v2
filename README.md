@@ -9,6 +9,8 @@
 [![Flask](https://img.shields.io/badge/Flask-3.x-black.svg)](https://flask.palletsprojects.com/)
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-black.svg)](https://github.com/rohillamanas06-commits/MedMate---AI-Health-Assistant-v2)
 
+![MedMate Home Page](C:\Users\manas\OneDrive\Pictures\Screenshots\Screenshot (435).png)
+
 🔗 **Repository**: [https://github.com/rohillamanas06-commits/MedMate---AI-Health-Assistant-v2](https://github.com/rohillamanas06-commits/MedMate---AI-Health-Assistant-v2)
 
 ## 📋 Table of Contents
@@ -416,7 +418,7 @@ Make sure to set all environment variables in your deployment platform:
 ## 📸 Screenshots
 
 ### Home Page
-![Home Page](docs/screenshots/home.png)
+![Home Page](C:/Users/manas/OneDrive/Pictures/Screenshots/Screenshot (435).png)
 
 ### AI Diagnosis
 ![Diagnosis](docs/screenshots/diagnose.png)
