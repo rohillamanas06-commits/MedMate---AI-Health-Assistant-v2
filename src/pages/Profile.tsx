@@ -30,9 +30,8 @@ export default function Profile() {
         username: user.username || '',
         email: user.email || '',
       });
-      if (user.profile_picture_url) {
-        setProfilePicture(user.profile_picture_url);
-      }
+      // Always update profile picture - set to empty string if not present
+      setProfilePicture(user.profile_picture_url || '');
     }
   }, [user]);
 
@@ -66,12 +65,22 @@ export default function Profile() {
       setProfilePicture(result.image_url);
       setPreview(null);
       
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
       // Refresh user data to get updated profile picture
       await checkAuth();
       
       toast.success('Profile picture uploaded successfully!');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to upload picture');
+      // Clear preview on error
+      setPreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } finally {
       setUploading(false);
     }
@@ -156,16 +165,51 @@ export default function Profile() {
                     onChange={handleFileChange}
                     className="hidden"
                   />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="mt-2"
-                    >
-                      <Camera className="h-4 w-4 mr-1" />
-                      Choose Photo
-                    </Button>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="mt-2"
+                      >
+                        <Camera className="h-4 w-4 mr-1" />
+                        Choose Photo
+                      </Button>
+                      {preview && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={handleUpload}
+                            disabled={uploading}
+                            className="mt-2"
+                          >
+                            {uploading ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-4 w-4 mr-1" />
+                                Upload
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setPreview(null);
+                              if (fileInputRef.current) fileInputRef.current.value = '';
+                            }}
+                            className="mt-2"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                     {profilePicture && !preview && (
                       <Button
                         size="sm"
@@ -186,39 +230,6 @@ export default function Profile() {
                           </>
                         )}
                       </Button>
-                    )}
-                    {preview && (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={handleUpload}
-                          disabled={uploading}
-                          className="mt-2"
-                        >
-                          {uploading ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                              Uploading...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-4 w-4 mr-1" />
-                              Upload
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setPreview(null);
-                            if (fileInputRef.current) fileInputRef.current.value = '';
-                          }}
-                          className="mt-2"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </>
                     )}
                   </div>
                 </div>
