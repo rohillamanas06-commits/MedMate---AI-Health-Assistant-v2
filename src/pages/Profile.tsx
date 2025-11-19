@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { User, Calendar, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -63,7 +63,9 @@ export default function Profile() {
             <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 mb-6">
               <div className="relative">
                 <Avatar className="h-20 w-20 sm:h-32 sm:w-32 border-4 border-primary/20">
-                  <AvatarImage src="/medmate-logo.svg" alt={user.username} />
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-2xl sm:text-4xl font-bold">
+                    {user.username.charAt(0).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
               </div>
               <div className="text-center sm:text-left flex-1">
