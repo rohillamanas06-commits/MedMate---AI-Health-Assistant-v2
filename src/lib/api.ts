@@ -240,6 +240,12 @@ class ApiClient {
     }, 30000);
   }
 
+  async deleteProfilePicture() {
+    return this.request('/api/profile/picture', {
+      method: 'DELETE',
+    });
+  }
+
   // Settings
   async deleteChatHistory() {
     return this.request('/api/settings/delete-chat-history', {
@@ -250,6 +256,19 @@ class ApiClient {
   async deleteDiagnosisHistory() {
     return this.request('/api/settings/delete-diagnosis-history', {
       method: 'DELETE',
+    });
+  }
+
+  async requestAccountDeletionCode() {
+    return this.request('/api/settings/account-deletion/request', {
+      method: 'POST',
+    });
+  }
+
+  async confirmAccountDeletion(code: string) {
+    return this.request('/api/settings/account-deletion/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
     });
   }
 

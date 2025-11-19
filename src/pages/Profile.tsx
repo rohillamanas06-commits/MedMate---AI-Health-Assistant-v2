@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Mail, Calendar, Camera, Loader2, Upload, X } from 'lucide-react';
+import { User, Calendar, Camera, Loader2, Upload, X, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ export default function Profile() {
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [removingPicture, setRemovingPicture] = useState(false);
   const [profileData, setProfileData] = useState({
     username: user?.username || '',
     email: user?.email || '',
@@ -73,6 +74,29 @@ export default function Profile() {
       toast.error(error instanceof Error ? error.message : 'Failed to upload picture');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleRemoveProfilePicture = async () => {
+    if (!profilePicture) {
+      toast.error('No profile picture to delete');
+      return;
+    }
+
+    setRemovingPicture(true);
+    try {
+      await api.deleteProfilePicture();
+      setProfilePicture('');
+      setPreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      await checkAuth();
+      toast.success('Profile picture removed');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete picture');
+    } finally {
+      setRemovingPicture(false);
     }
   };
 
@@ -142,6 +166,27 @@ export default function Profile() {
                       <Camera className="h-4 w-4 mr-1" />
                       Choose Photo
                     </Button>
+                    {profilePicture && !preview && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleRemoveProfilePicture}
+                        disabled={removingPicture}
+                        className="mt-2 text-destructive hover:text-destructive"
+                      >
+                        {removingPicture ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            Removing...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Remove Photo
+                          </>
+                        )}
+                      </Button>
+                    )}
                     {preview && (
                       <>
                         <Button

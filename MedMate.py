@@ -263,6 +263,7 @@ class User(db.Model):
     diagnoses = db.relationship('Diagnosis', backref='user', lazy=True, cascade='all, delete-orphan')
     chat_history = db.relationship('ChatHistory', backref='user', lazy=True, cascade='all, delete-orphan')
     reset_tokens = db.relationship('PasswordResetToken', backref='user', lazy=True, cascade='all, delete-orphan')
+    account_deletion_tokens = db.relationship('AccountDeletionToken', backref='user', lazy=True, cascade='all, delete-orphan')
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -282,6 +283,19 @@ class PasswordResetToken(db.Model):
     def is_valid(self):
         """Check if token is valid and not expired"""
         return not self.used and datetime.utcnow() < self.expires_at
+
+
+class AccountDeletionToken(db.Model):
+    """Store verification codes for account deletion"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    code = db.Column(db.String(6), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    attempts = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    def is_valid(self):
+        return datetime.utcnow() < self.expires_at
 
 class Diagnosis(db.Model):
     """Store diagnosis history"""
@@ -474,6 +488,60 @@ def send_password_reset_email(user_email, reset_link):
         return True
     except Exception as e:
         print(f"❌ Error sending email: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def send_account_deletion_code(user_email, username, code):
+    """Send account deletion verification code via email"""
+    try:
+        print(f"📧 Sending account deletion code to: {user_email}")
+
+        if not SENDGRID_API_KEY:
+            print("❌ SendGrid API key not configured")
+            return False
+
+        sg = SendGridAPIClient(api_key=SENDGRID_API_KEY)
+        message = Mail(
+            from_email='rohillamanas06@gmail.com',
+            to_emails=user_email,
+            subject='Confirm Your MedMate Account Deletion',
+            html_content=f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%); padding: 30px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">MedMate</h1>
+                    <p style="color: white; margin: 10px 0 0 0;">Account Deletion Request</p>
+                </div>
+                <div style="background: #f9f9f9; padding: 30px;">
+                    <p style="color: #333; line-height: 1.6;">
+                        Hi {username},
+                    </p>
+                    <p style="color: #666; line-height: 1.6;">
+                        We received a request to delete your MedMate account. If this was you, please use the verification code below to confirm the deletion. This code will expire in 10 minutes.
+                    </p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <div style="display: inline-block; padding: 15px 40px; font-size: 28px; letter-spacing: 6px; background: #fff; border: 2px dashed #ff5f6d; border-radius: 8px; color: #ff5f6d;">
+                            {code}
+                        </div>
+                    </div>
+                    <p style="color: #999; font-size: 14px; line-height: 1.6;">
+                        If you did not request this, please ignore this email. Your account will remain active.
+                    </p>
+                </div>
+                <div style="background: #eee; padding: 20px; text-align: center;">
+                    <p style="color: #999; font-size: 12px; margin: 0;">
+                        © 2024 MedMate. All rights reserved.
+                    </p>
+                </div>
+            </div>
+            """,
+        )
+        message.reply_to = 'rohillamanas06@gmail.com'
+        response = sg.send(message)
+        print(f"✅ Account deletion code sent (status {response.status_code})")
+        return True
+    except Exception as e:
+        print(f"❌ Error sending account deletion code: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -1961,6 +2029,38 @@ def upload_profile_picture():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/profile/picture', methods=['DELETE'])
+@login_required
+def delete_profile_picture():
+    """Delete the current user's profile picture"""
+    try:
+        user = db.session.get(User, session['user_id'])
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        if not user.profile_picture:
+            return jsonify({'error': 'No profile picture to delete'}), 400
+
+        picture_path = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(user.profile_picture))
+        if os.path.exists(picture_path):
+            try:
+                os.remove(picture_path)
+                print(f"🗑️ Deleted profile picture: {picture_path}")
+            except Exception as file_error:
+                print(f"⚠️ Could not delete profile picture file: {file_error}")
+
+        user.profile_picture = None
+        db.session.commit()
+
+        return jsonify({'message': 'Profile picture deleted successfully'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Delete profile picture error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/profile', methods=['PUT'])
 @login_required
 def update_profile():
@@ -2089,6 +2189,116 @@ def delete_diagnosis_history():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/settings/account-deletion/request', methods=['POST'])
+@login_required
+def request_account_deletion():
+    """Send a verification code to confirm account deletion"""
+    try:
+        user = db.session.get(User, session['user_id'])
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        recent_token = AccountDeletionToken.query.filter_by(user_id=user.id)\
+            .order_by(AccountDeletionToken.created_at.desc()).first()
+
+        if recent_token and (datetime.utcnow() - recent_token.created_at).total_seconds() < 60:
+            return jsonify({'error': 'Please wait a minute before requesting another code.'}), 429
+
+        AccountDeletionToken.query.filter_by(user_id=user.id).delete()
+
+        code = f"{secrets.randbelow(1000000):06d}"
+        token = AccountDeletionToken(
+            user_id=user.id,
+            code=code,
+            expires_at=datetime.utcnow() + timedelta(minutes=10)
+        )
+        db.session.add(token)
+        db.session.flush()
+
+        email_sent = send_account_deletion_code(user.email, user.username, code)
+        if not email_sent:
+            db.session.rollback()
+            return jsonify({'error': 'Failed to send verification email. Please try again later.'}), 500
+
+        db.session.commit()
+        return jsonify({'message': 'Verification code sent to your email.'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Account deletion code error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Unable to send verification code. Please try again.'}), 500
+
+@app.route('/api/settings/account-deletion/confirm', methods=['POST'])
+@login_required
+def confirm_account_deletion():
+    """Verify code and delete the user's account"""
+    try:
+        data = request.get_json() or {}
+        code = str(data.get('code', '')).strip()
+
+        if len(code) != 6 or not code.isdigit():
+            return jsonify({'error': 'Please enter the 6-digit verification code.'}), 400
+
+        user = db.session.get(User, session['user_id'])
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        token = AccountDeletionToken.query.filter_by(user_id=user.id)\
+            .order_by(AccountDeletionToken.created_at.desc()).first()
+
+        if not token:
+            return jsonify({'error': 'No verification code found. Please request a new one.'}), 400
+
+        if not token.is_valid():
+            db.session.delete(token)
+            db.session.commit()
+            return jsonify({'error': 'Verification code expired. Request a new one.'}), 400
+
+        if token.code != code:
+            token.attempts += 1
+            db.session.commit()
+            if token.attempts >= 5:
+                AccountDeletionToken.query.filter_by(user_id=user.id).delete()
+                db.session.commit()
+                return jsonify({'error': 'Too many invalid attempts. Please request a new code.'}), 400
+            return jsonify({'error': 'Invalid verification code. Please try again.'}), 400
+
+        # Remove any uploaded files (profile + diagnosis images)
+        if user.profile_picture:
+            profile_path = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(user.profile_picture))
+            if os.path.exists(profile_path):
+                try:
+                    os.remove(profile_path)
+                except Exception as file_error:
+                    print(f"⚠️ Could not delete profile picture: {file_error}")
+
+        diagnoses = Diagnosis.query.filter_by(user_id=user.id).all()
+        for diag in diagnoses:
+            if diag.image_path:
+                image_path = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(diag.image_path))
+                if os.path.exists(image_path):
+                    try:
+                        os.remove(image_path)
+                    except Exception as diag_error:
+                        print(f"⚠️ Could not delete diagnosis image: {diag_error}")
+
+        AccountDeletionToken.query.filter_by(user_id=user.id).delete()
+        db.session.delete(user)
+        db.session.commit()
+
+        session.clear()
+
+        return jsonify({'message': 'Your account has been deleted successfully.'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Account deletion error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to delete account. Please try again.'}), 500
 
 # ==================== UTILITY ROUTES ====================
 
