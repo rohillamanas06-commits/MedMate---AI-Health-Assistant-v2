@@ -1,4 +1,4 @@
-# 🏥 MedMate - AI Medical Assistant
+# 🏥 MedMate - AI Medical Assistant - v2
 
 > Your intelligent healthcare companion powered by Google Gemini AI
 
