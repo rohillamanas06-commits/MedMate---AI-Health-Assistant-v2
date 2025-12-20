@@ -76,6 +76,6 @@ MedMate is an advanced AI-powered medical assistant platform that provides insta
 - **Flask-CORS** - Cross-origin support
 
 
- Made With ❤️ By Manas Rohilla
+  Made With ❤️ By Manas Rohilla
 
 
