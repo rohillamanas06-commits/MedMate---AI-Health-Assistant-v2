@@ -1,8 +1,7 @@
 # 🏥 MedMate - AI Medical Assistant - v2
 
-> Your intelligent healthcare companion powered by Google Gemini AI
 
-## 🏥 About MedMate
+## About MedMate
 
 MedMate is an advanced AI-powered medical assistant platform that provides instant medical insights using cutting-edge AI technology. Built with **Google Gemini 2.5 Flash** for lightning-fast, accurate medical analysis.
 
