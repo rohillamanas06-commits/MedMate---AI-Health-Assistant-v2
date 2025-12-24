@@ -119,29 +119,6 @@ export default function Home() {
                   Try Symptom Checker
                 </Button>
               </div>
-              <div className="flex items-center gap-6 pt-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                    <span className="text-lg font-semibold">AI-Powered</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                    <span className="text-lg font-semibold">24/7 Available</span>
-                  </div>
-                </div>
-                <div className="h-12 w-px bg-border" />
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                    <span className="text-lg font-semibold">Instant Results</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                    <span className="text-lg font-semibold">Secure & Private</span>
-                  </div>
-                </div>
-              </div>
             </div>
             <div className="relative animate-fade-in overflow-hidden rounded-3xl">
               <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-accent/20 rounded-3xl blur-3xl animate-pulse"></div>
