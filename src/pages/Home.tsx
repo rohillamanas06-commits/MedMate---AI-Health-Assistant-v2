@@ -8,9 +8,7 @@ import {
   MessageSquare,
   MapPin,
   Shield,
-  Zap,
   ArrowRight,
-  CheckCircle2,
   Loader2,
   Instagram,
   Github,
@@ -76,14 +74,6 @@ export default function Home() {
       title: 'Secure & Private',
       description: 'Your health data is encrypted and protected with enterprise-grade security.',
     },
-  ];
-
-  const benefits = [
-    'Instant symptom analysis with AI',
-    'Medical image analysis',
-    'Personalized health insights',
-    'Track your medical history',
-    'Voice-enabled interface',
   ];
 
   return (
@@ -238,18 +228,6 @@ export default function Home() {
                 MedMate combines cutting-edge AI with medical expertise to provide you with the best
                 healthcare experience.
               </p>
-              <div className="grid gap-4">
-                {benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0" />
-                    <span className="text-lg">{benefit}</span>
-                  </div>
-                ))}
-              </div>
-              <Button size="lg" className="mt-4" onClick={() => navigate(user ? '/dashboard' : '/auth')}>
-                Start Your Journey
-                <Zap className="ml-2 h-5 w-5" />
-              </Button>
             </div>
             <div className="relative">
               <Card className="p-8 glass hover-lift animate-fade-in">
