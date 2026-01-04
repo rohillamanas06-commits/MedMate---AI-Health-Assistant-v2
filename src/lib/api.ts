@@ -85,6 +85,13 @@ class ApiClient {
     }, 30000); // 30 second timeout for login
   }
 
+  async googleLogin(credential: string) {
+    return this.requestWithTimeout('/api/google-login', {
+      method: 'POST',
+      body: JSON.stringify({ credential }),
+    }, 30000); // 30 second timeout for Google login
+  }
+
   async logout() {
     return this.request('/api/logout', { method: 'POST' });
   }

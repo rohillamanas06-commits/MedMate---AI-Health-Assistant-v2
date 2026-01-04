@@ -1307,6 +1307,107 @@ def login():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/google-login', methods=['POST'])
+def google_login():
+    """Handle Google OAuth login"""
+    try:
+        from google.oauth2 import id_token
+        from google.auth.transport import requests as google_requests
+        
+        data = request.get_json()
+        credential = data.get('credential')
+        
+        if not credential:
+            return jsonify({'error': 'No credential provided'}), 400
+        
+        print(f"🔐 Google login attempt")
+        
+        # Verify the Google ID token
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                credential, 
+                google_requests.Request(), 
+                os.getenv('GOOGLE_CLIENT_ID')
+            )
+            
+            # Extract user info from Google token
+            google_id = idinfo['sub']
+            email = idinfo['email']
+            name = idinfo.get('name', email.split('@')[0])
+            picture = idinfo.get('picture')
+            
+            print(f"✅ Google token verified: email={email}, name={name}")
+            
+            # Check if user exists
+            user = User.query.filter_by(email=email).first()
+            
+            if user:
+                # User exists - log them in
+                print(f"✅ Existing user found: {user.username}")
+            else:
+                # Create new user with Google info
+                # Generate unique username from email
+                base_username = email.split('@')[0]
+                username = base_username
+                counter = 1
+                while User.query.filter_by(username=username).first():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                
+                user = User(
+                    username=username,
+                    email=email,
+                    password_hash=generate_password_hash(secrets.token_urlsafe(32))  # Random password for OAuth users
+                )
+                
+                # Download profile picture if available
+                if picture:
+                    try:
+                        import urllib.request
+                        filename = f"google_{google_id}_{secrets.token_hex(8)}.jpg"
+                        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                        urllib.request.urlretrieve(picture, filepath)
+                        user.profile_picture = filename
+                        print(f"✅ Profile picture downloaded: {filename}")
+                    except Exception as pic_error:
+                        print(f"⚠️ Could not download profile picture: {pic_error}")
+                
+                db.session.add(user)
+                db.session.commit()
+                print(f"✅ New user created: {username}")
+            
+            # Set session
+            session.permanent = True
+            session['user_id'] = user.id
+            session['username'] = user.username
+            
+            # Get profile picture URL
+            profile_pic_url = None
+            if user.profile_picture:
+                profile_pic_url = f"{request.url_root.rstrip('/')}/static/uploads/{user.profile_picture}"
+            
+            return jsonify({
+                'message': 'Login successful',
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'profile_picture': user.profile_picture,
+                    'profile_picture_url': profile_pic_url,
+                    'created_at': user.created_at.isoformat() if user.created_at else None
+                }
+            }), 200
+            
+        except ValueError as verify_error:
+            print(f"❌ Invalid Google token: {verify_error}")
+            return jsonify({'error': 'Invalid Google token'}), 401
+    
+    except Exception as e:
+        print(f"❌ Google login error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/logout', methods=['POST'])
 def logout():
     """User logout"""
