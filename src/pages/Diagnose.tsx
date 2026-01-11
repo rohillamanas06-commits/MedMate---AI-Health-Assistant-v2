@@ -200,9 +200,11 @@ export default function Diagnose() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background py-8">
       <div className="container max-w-6xl">
-        <div className="mb-8 text-center animate-slide-up">
-          <h1 className="text-4xl font-bold mb-2 gradient-text">AI Medical Diagnosis</h1>
-          <p className="text-muted-foreground text-lg">
+        <div className="mb-8 px-4 text-center animate-slide-up">
+          <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent leading-tight">
+            AI Medical Diagnosis
+          </h1>
+          <p className="text-muted-foreground text-lg px-2">
             Describe your symptoms or upload an image for instant AI analysis
           </p>
         </div>
