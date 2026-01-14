@@ -16,6 +16,7 @@ import Hospitals from "./pages/Hospitals";
 import History from "./pages/History";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import About from "./pages/About";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -88,6 +89,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <Settings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/about"
+                  element={
+                    <ProtectedRoute>
+                      <About />
                     </ProtectedRoute>
                   }
                 />

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, LogOut, User, Menu, Settings, Moon, Sun, Sparkles } from 'lucide-react';
+import { Activity, LogOut, User, Menu, Settings, Moon, Sun, Sparkles, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -132,6 +132,10 @@ export const Navbar = () => {
                   {getThemeIcon()}
                   {getThemeLabel()}
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/about')}>
+                  <Info className="h-4 w-4 mr-2" />
+                  About
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="h-4 w-4 mr-2" />
@@ -172,6 +176,10 @@ export const Navbar = () => {
                   <Button variant="outline" onClick={toggleTheme}>
                     {getThemeIcon()}
                     {getThemeLabel()}
+                  </Button>
+                  <Button variant="outline" onClick={() => handleNavigation('/about')}>
+                    <Info className="h-4 w-4 mr-2" />
+                    About
                   </Button>
                   <Button variant="outline" onClick={handleLogout}>
                     <LogOut className="h-4 w-4 mr-2" />
