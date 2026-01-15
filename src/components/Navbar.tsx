@@ -66,7 +66,13 @@ export const Navbar = () => {
                 Find Hospitals
               </button>
             </>
-          ) : null}
+          ) : (
+            <>
+              <button onClick={() => handleNavigation('/about')} className={`${linkClass} text-left w-full`}>
+                About
+              </button>
+            </>
+          )}
         </>
       );
     }
@@ -91,7 +97,13 @@ export const Navbar = () => {
               Find Hospitals
             </Link>
           </>
-        ) : null}
+        ) : (
+          <>
+            <Link to="/about" className={linkClass}>
+              About
+            </Link>
+          </>
+        )}
       </>
     );
   };
@@ -192,6 +204,10 @@ export const Navbar = () => {
                     Login
                   </Button>
                   <Button onClick={() => { navigate('/auth'); setIsSheetOpen(false); }}>Get Started</Button>
+                  <Button variant="outline" onClick={() => handleNavigation('/about')}>
+                    <Info className="h-4 w-4 mr-2" />
+                    About
+                  </Button>
                 </>
               )}
             </div>
