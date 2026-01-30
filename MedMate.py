@@ -227,7 +227,7 @@ if GEMINI_API_KEY:
         
         # Initialize model without testing (lazy loading)
         # Use the most common model that should work
-        gemini_model = genai.GenerativeModel('models/gemini-2.5-flash')
+        gemini_model = genai.GenerativeModel('models/gemini-3-flash-preview')
         ai_provider = 'gemini'
         print(f"✓ Gemini API configured (model will be tested on first use)")
     except Exception as e:
