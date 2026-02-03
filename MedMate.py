@@ -1511,7 +1511,9 @@ def google_login():
                 user = User(
                     username=username,
                     email=email,
-                    password_hash=generate_password_hash(secrets.token_urlsafe(32))  # Random password for OAuth users
+                    password_hash=generate_password_hash(secrets.token_urlsafe(32)),  # Random password for OAuth users
+                    credits=5,  # Initialize with default credits
+                    credits_used=0  # Initialize credits used
                 )
                 
                 # Download profile picture if available
