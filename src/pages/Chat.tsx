@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar } from '@/components/ui/avatar';
-import { MessageSquare, Send, Loader2, Bot, User, Mic, Volume2 } from 'lucide-react';
+import { MessageSquare, Send, Loader2, Bot, User, Mic, Volume2, Coins } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { BuyCreditsModal } from '@/components/BuyCreditsModal';
 
 interface Message {
   id: string;
@@ -17,12 +18,13 @@ interface Message {
 }
 
 export default function Chat() {
-  const { user } = useAuth();
+  const { user, updateCredits, checkAuth } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,13 +87,29 @@ export default function Chat() {
         timestamp: new Date(response.timestamp),
       };
       setMessages((prev) => [...prev, aiMessage]);
-    } catch (error) {
-      toast.error('Failed to get response');
+      
+      // Update credits if returned
+      if (response.credits_remaining !== undefined) {
+        updateCredits(response.credits_remaining);
+      }
+    } catch (error: any) {
+      // Check if it's insufficient credits error
+      if (error.message?.includes('Insufficient credits') || error.message?.includes('insufficient_credits')) {
+        toast.error('Insufficient credits! Please purchase more credits to continue.');
+        setShowBuyCredits(true);
+      } else {
+        toast.error('Failed to get response');
+      }
       // Remove user message on error
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCreditsSuccess = async () => {
+    await checkAuth();
+    toast.success('Credits added! You can continue chatting.');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -282,6 +300,12 @@ export default function Chat() {
 
             {/* Input Area */}
             <div className="border-t bg-background/50 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Coins className="h-4 w-4 text-emerald-600" />
+                <span className="text-sm text-muted-foreground">
+                  {user?.credits || 0} credits remaining • 1 credit per message
+                </span>
+              </div>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -314,6 +338,14 @@ export default function Chat() {
           </div>
         </Card>
       </div>
+      
+      {/* Buy Credits Modal */}
+      <BuyCreditsModal
+        isOpen={showBuyCredits}
+        onClose={() => setShowBuyCredits(false)}
+        onSuccess={handleCreditsSuccess}
+        currentCredits={user?.credits || 0}
+      />
     </div>
   );
 }

@@ -15,18 +15,23 @@ import {
   Mic,
   X,
   Volume2,
+  Coins,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
+import { BuyCreditsModal } from '@/components/BuyCreditsModal';
 
 export default function Diagnose() {
+  const { user, updateCredits, checkAuth } = useAuth();
   const [symptoms, setSymptoms] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isListening, setIsListening] = useState(false);
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
 
   const handleTextDiagnosis = async () => {
     if (!symptoms.trim()) {
@@ -41,11 +46,19 @@ export default function Diagnose() {
       const response: any = await api.diagnose(symptoms);
       setResult(response.result);
       toast.success('Analysis complete!');
-    } catch (error) {
+      
+      // Update credits if returned
+      if (response.credits_remaining !== undefined) {
+        updateCredits(response.credits_remaining);
+      }
+    } catch (error: any) {
       const errorMessage = error instanceof Error ? error.message : 'Diagnosis failed';
       
-      // Provide more specific error messages
-      if (errorMessage.includes('timeout')) {
+      // Check if it's insufficient credits error
+      if (errorMessage.includes('Insufficient credits') || errorMessage.includes('insufficient_credits')) {
+        toast.error('Insufficient credits! Please purchase more credits to continue.');
+        setShowBuyCredits(true);
+      } else if (errorMessage.includes('timeout')) {
         toast.error('Analysis is taking longer than expected. Please try again with shorter symptoms or check your connection.');
       } else if (errorMessage.includes('network')) {
         toast.error('Network error. Please check your internet connection and try again.');
@@ -71,11 +84,19 @@ export default function Diagnose() {
       const response: any = await api.diagnoseImage(selectedImages[0], symptoms);
       setResult(response.result);
       toast.success(`Image analysis complete! (${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''} uploaded)`);
-    } catch (error) {
+      
+      // Update credits if returned
+      if (response.credits_remaining !== undefined) {
+        updateCredits(response.credits_remaining);
+      }
+    } catch (error: any) {
       const errorMessage = error instanceof Error ? error.message : 'Image analysis failed';
       
-      // Provide more specific error messages
-      if (errorMessage.includes('timeout')) {
+      // Check if it's insufficient credits error
+      if (errorMessage.includes('Insufficient credits') || errorMessage.includes('insufficient_credits')) {
+        toast.error('Insufficient credits! Please purchase more credits to continue.');
+        setShowBuyCredits(true);
+      } else if (errorMessage.includes('timeout')) {
         toast.error('Image analysis is taking longer than expected. Please try again with a smaller image or check your connection.');
       } else if (errorMessage.includes('network')) {
         toast.error('Network error. Please check your internet connection and try again.');
@@ -85,6 +106,11 @@ export default function Diagnose() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCreditsSuccess = async () => {
+    await checkAuth();
+    toast.success('Credits added! You can continue with diagnosis.');
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -485,11 +511,25 @@ export default function Diagnose() {
                 <p className="text-muted-foreground">
                   Enter your symptoms or upload an image to get started
                 </p>
+                <div className="flex items-center justify-center gap-2 mt-4 text-emerald-600">
+                  <Coins className="h-5 w-5" />
+                  <span className="text-sm font-medium">
+                    {user?.credits || 0} credits available • 1 credit per diagnosis
+                  </span>
+                </div>
               </Card>
             )}
           </div>
         </div>
       </div>
+      
+      {/* Buy Credits Modal */}
+      <BuyCreditsModal
+        isOpen={showBuyCredits}
+        onClose={() => setShowBuyCredits(false)}
+        onSuccess={handleCreditsSuccess}
+        currentCredits={user?.credits || 0}
+      />
     </div>
   );
 }

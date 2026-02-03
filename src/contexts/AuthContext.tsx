@@ -8,6 +8,7 @@ interface User {
   email: string;
   profile_picture?: string;
   profile_picture_url?: string;
+  credits?: number;
   created_at?: string;
 }
 
@@ -19,6 +20,7 @@ interface AuthContextType {
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  updateCredits: (credits: number) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -89,8 +91,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateCredits = (credits: number) => {
+    if (user) {
+      setUser({ ...user, credits });
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, googleLogin, register, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, loading, login, googleLogin, register, logout, checkAuth, updateCredits }}>
       {children}
     </AuthContext.Provider>
   );

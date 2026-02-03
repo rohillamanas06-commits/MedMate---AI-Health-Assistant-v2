@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, LogOut, User, Menu, Settings, Moon, Sun, Info, HeartPulse } from 'lucide-react';
+import { Activity, LogOut, User, Menu, Settings, Moon, Sun, Info, HeartPulse, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,12 +12,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useState } from 'react';
+import { BuyCreditsModal } from './BuyCreditsModal';
 
 export const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, checkAuth } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -28,6 +30,15 @@ export const Navbar = () => {
   const handleNavigation = (path: string) => {
     navigate(path);
     setIsSheetOpen(false);
+  };
+
+  const handleBuyCredits = () => {
+    setShowBuyCredits(true);
+    setIsSheetOpen(false);
+  };
+
+  const handleCreditsSuccess = async () => {
+    await checkAuth();
   };
 
   const getThemeIcon = () => {
@@ -124,37 +135,56 @@ export const Navbar = () => {
         {/* User Menu */}
         <div className="hidden md:flex items-center space-x-4">
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <User className="h-4 w-4 mr-2" />
-                  {user.username}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-popover">
-                <DropdownMenuItem onClick={() => navigate('/profile')}>
-                  <User className="h-4 w-4 mr-2" />
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/settings')}>
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={toggleTheme}>
-                  {getThemeIcon()}
-                  {getThemeLabel()}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/about')}>
-                  <Info className="h-4 w-4 mr-2" />
-                  About
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleBuyCredits}
+                className={`border ${
+                  (user.credits || 0) === 0 
+                    ? 'text-red-600 border-red-600 dark:text-red-400 dark:border-red-400 hover:bg-transparent active:bg-transparent' 
+                    : 'text-emerald-600 border-emerald-600 dark:text-emerald-400 dark:border-emerald-400 hover:bg-transparent active:bg-transparent'
+                }`}
+              >
+                <Coins className="h-4 w-4 mr-2" />
+                {user.credits || 0} Credits
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <User className="h-4 w-4 mr-2" />
+                    {user.username}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover">
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/settings')}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleBuyCredits}>
+                    <Coins className="h-4 w-4 mr-2" />
+                    Buy Credits
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={toggleTheme}>
+                    {getThemeIcon()}
+                    {getThemeLabel()}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/about')}>
+                    <Info className="h-4 w-4 mr-2" />
+                    About
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
             <>
               <Button variant="outline" onClick={() => navigate('/auth')}>
@@ -177,6 +207,10 @@ export const Navbar = () => {
               <NavLinks isMobile={true} />
               {user ? (
                 <>
+                  <Button variant="outline" onClick={handleBuyCredits} className="justify-start">
+                    <Coins className="h-4 w-4 mr-2" />
+                    {user.credits || 0} Credits - Buy More
+                  </Button>
                   <Button variant="outline" onClick={() => handleNavigation('/profile')}>
                     <User className="h-4 w-4 mr-2" />
                     Profile
@@ -214,6 +248,16 @@ export const Navbar = () => {
           </SheetContent>
         </Sheet>
       </div>
+      
+      {/* Buy Credits Modal */}
+      {user && (
+        <BuyCreditsModal
+          isOpen={showBuyCredits}
+          onClose={() => setShowBuyCredits(false)}
+          onSuccess={handleCreditsSuccess}
+          currentCredits={user.credits || 0}
+        />
+      )}
     </nav>
   );
 };

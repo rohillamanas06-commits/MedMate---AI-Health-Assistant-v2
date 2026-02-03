@@ -286,6 +286,37 @@ class ApiClient {
       body: JSON.stringify({ name, email, message }),
     });
   }
+
+  // Credits & Payments
+  async getCreditsBalance() {
+    return this.request('/api/credits/balance');
+  }
+
+  async getCreditsTransactions(limit = 50) {
+    return this.request(`/api/credits/transactions?limit=${limit}`);
+  }
+
+  async getCreditsPackages() {
+    return this.request('/api/credits/packages');
+  }
+
+  async createPaymentOrder(packageId: string) {
+    return this.request('/api/payment/create-order', {
+      method: 'POST',
+      body: JSON.stringify({ package_id: packageId }),
+    });
+  }
+
+  async verifyPayment(paymentData: {
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature: string;
+  }) {
+    return this.request('/api/payment/verify', {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    });
+  }
 }
 
 export const api = new ApiClient(API_BASE_URL);
