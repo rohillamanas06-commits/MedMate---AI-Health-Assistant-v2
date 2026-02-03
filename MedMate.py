@@ -641,6 +641,10 @@ def login_required(f):
     """Decorator to require login for routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Allow OPTIONS requests through without authentication (CORS preflight)
+        if request.method == 'OPTIONS':
+            return f(*args, **kwargs)
+        
         if 'user_id' not in session:
             # Check if this is an API request or page request
             if request.path.startswith('/api/'):
