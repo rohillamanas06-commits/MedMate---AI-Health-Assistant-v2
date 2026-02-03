@@ -1533,7 +1533,7 @@ def google_login():
             
             if user:
                 # User exists - log them in
-                print(f"✅ Existing user found: {user.username}")
+                print(f"✅ Existing user found: {user.username} (ID: {user.id})")
             else:
                 # Create new user with Google info
                 # Generate unique username from email
@@ -1543,6 +1543,8 @@ def google_login():
                 while User.query.filter_by(username=username).first():
                     username = f"{base_username}{counter}"
                     counter += 1
+                
+                print(f"👤 Creating new user: {username}")
                 
                 user = User(
                     username=username,
@@ -1565,8 +1567,16 @@ def google_login():
                         print(f"⚠️ Could not download profile picture: {pic_error}")
                 
                 db.session.add(user)
-                db.session.commit()
-                print(f"✅ New user created: {username}")
+                db.session.flush()  # Flush to get user.id before commit
+                print(f"🔄 User added to session, flushing...")
+                
+                db.session.commit()  # Commit to database
+                print(f"✅ New user created and committed: {username} (ID: {user.id})")
+                
+                # Verify user was saved
+                db.session.refresh(user)
+                if not user.id:
+                    raise Exception("User was not saved to database")
             
             # Set session
             session.permanent = True
@@ -1930,6 +1940,7 @@ def create_payment_order():
         user = User.query.get(session['user_id'])
         if not user:
             print(f"❌ User {session['user_id']} not found in database")
+            db.session.rollback()  # Rollback any pending transactions
             session.clear()  # Clear invalid session
             return jsonify({'error': 'User session invalid. Please login again.'}), 401
         
@@ -1971,8 +1982,28 @@ def create_payment_order():
             }
         }
         
-        razorpay_order = razorpay_client.order.create(data=order_data)
-        print(f"✅ Razorpay order created: {razorpay_order['id']}")
+        try:
+            print(f"📱 Calling Razorpay API...")
+            razorpay_order = razorpay_client.order.create(data=order_data)
+            print(f"✅ Razorpay order created: {razorpay_order['id']}")
+        except requests.exceptions.ConnectionError as conn_err:
+            print(f"❌ Razorpay connection error: {conn_err}")
+            return jsonify({
+                'error': 'Payment service temporarily unavailable. Please try again later.',
+                'details': 'Connection timeout'
+            }), 503
+        except requests.exceptions.Timeout:
+            print(f"❌ Razorpay timeout error")
+            return jsonify({
+                'error': 'Payment service request timed out. Please try again.',
+                'details': 'Request timeout'
+            }), 503
+        except Exception as razorpay_err:
+            print(f"❌ Razorpay API error: {type(razorpay_err).__name__}: {str(razorpay_err)}")
+            return jsonify({
+                'error': 'Failed to create payment order',
+                'details': str(razorpay_err)
+            }), 500
         
         # Save order to database
         payment_order = PaymentOrder(
