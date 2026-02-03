@@ -1620,6 +1620,14 @@ def login():
             print(f"⚠️ Invalid password for user '{username}'")
             return jsonify({'error': 'Invalid username or password'}), 401
         
+        # FIX: Ensure existing users have credits initialized
+        if user.credits is None:
+            print(f"⚠️ User {user.username} has NULL credits, initializing to 5")
+            user.credits = 5
+            user.credits_used = user.credits_used or 0
+            db.session.commit()
+            print(f"✅ Credits initialized for user: {user.username}")
+        
         session.permanent = True
         session['user_id'] = user.id
         session['username'] = user.username
@@ -1687,6 +1695,14 @@ def google_login():
             if user:
                 # User exists - log them in
                 print(f"✅ Existing user found: {user.username} (ID: {user.id})")
+                
+                # FIX: Ensure existing Google users have credits initialized
+                if user.credits is None:
+                    print(f"⚠️ User {user.username} has NULL credits, initializing to 5")
+                    user.credits = 5
+                    user.credits_used = user.credits_used or 0
+                    db.session.commit()
+                    print(f"✅ Credits initialized for existing Google user: {user.username}")
             else:
                 # Create new user with Google info
                 # Generate unique username from email
@@ -1775,12 +1791,19 @@ def check_auth():
     """Check if user is authenticated - optimized for speed"""
     if 'user_id' in session:
         try:
-            # Fast query - only select needed columns
-            user = db.session.query(User.id, User.username, User.email, User.profile_picture, User.credits, User.created_at)\
-                .filter(User.id == session['user_id']).first()
+            # Get full user object to check and fix credits if needed
+            user = User.query.get(session['user_id'])
             
             if not user:
                 return jsonify({'authenticated': False}), 200
+            
+            # FIX: Ensure user has credits initialized (fixes old accounts)
+            if user.credits is None:
+                print(f"⚠️ User {user.username} has NULL credits during check-auth, initializing to 5")
+                user.credits = 5
+                user.credits_used = user.credits_used or 0
+                db.session.commit()
+                print(f"✅ Credits initialized for user: {user.username}")
             
             profile_pic_url = None
             if user.profile_picture:
