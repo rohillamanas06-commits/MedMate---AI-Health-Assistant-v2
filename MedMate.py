@@ -1401,13 +1401,18 @@ def register():
             return jsonify({'error': 'Email already exists'}), 400
         
         # Create new user
-        user = User(username=username, email=email)
+        user = User(
+            username=username, 
+            email=email,
+            credits=5,  # Initialize with default credits
+            credits_used=0  # Initialize credits used
+        )
         user.set_password(password)
         
         db.session.add(user)
         db.session.commit()
         
-        print(f"✅ User registered successfully: ID={user.id}, username={user.username}")
+        print(f"✅ User registered successfully: ID={user.id}, username={user.username}, credits={user.credits}")
         
         # Set session
         session.permanent = True
@@ -1921,6 +1926,13 @@ def create_payment_order():
     try:
         print(f"💳 Payment order request received from user {session.get('user_id')}")
         
+        # Verify user exists in database
+        user = User.query.get(session['user_id'])
+        if not user:
+            print(f"❌ User {session['user_id']} not found in database")
+            session.clear()  # Clear invalid session
+            return jsonify({'error': 'User session invalid. Please login again.'}), 401
+        
         if not razorpay_client:
             print("❌ Razorpay client not configured")
             return jsonify({'error': 'Payment service not configured'}), 503
@@ -2079,6 +2091,12 @@ def diagnose():
         return '', 204
     
     try:
+        # Verify user exists in database
+        user = User.query.get(session['user_id'])
+        if not user:
+            session.clear()
+            return jsonify({'error': 'User session invalid. Please login again.'}), 401
+        
         # Check if user has enough credits
         if not check_credits(session['user_id'], 1):
             return jsonify({
@@ -2137,6 +2155,12 @@ def diagnose_image():
         return '', 204
     
     try:
+        # Verify user exists in database
+        user = User.query.get(session['user_id'])
+        if not user:
+            session.clear()
+            return jsonify({'error': 'User session invalid. Please login again.'}), 401
+        
         # Check if user has enough credits
         if not check_credits(session['user_id'], 1):
             return jsonify({
@@ -2270,6 +2294,12 @@ def chat():
         return '', 204
     
     try:
+        # Verify user exists in database
+        user = User.query.get(session['user_id'])
+        if not user:
+            session.clear()
+            return jsonify({'error': 'User session invalid. Please login again.'}), 401
+        
         # Check if user has enough credits
         if not check_credits(session['user_id'], 1):
             return jsonify({
