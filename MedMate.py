@@ -153,6 +153,80 @@ def init_db():
         
         db.create_all()
         
+        # Ensure credits system tables and columns exist (for new deployments)
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            
+            # Check if credits columns exist in user table
+            user_columns = [col['name'] for col in inspector.get_columns('user')]
+            
+            with db.engine.connect() as conn:
+                # Add credits column if not exists
+                if 'credits' not in user_columns:
+                    print("⚠️ Adding credits column to user table...")
+                    conn.execute(text("ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 5 NOT NULL"))
+                    conn.execute(text("UPDATE \"user\" SET credits = 5 WHERE credits IS NULL"))
+                    print("✅ credits column added successfully")
+                
+                # Add credits_used column if not exists
+                if 'credits_used' not in user_columns:
+                    print("⚠️ Adding credits_used column to user table...")
+                    conn.execute(text("ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS credits_used INTEGER DEFAULT 0 NOT NULL"))
+                    conn.execute(text("UPDATE \"user\" SET credits_used = 0 WHERE credits_used IS NULL"))
+                    print("✅ credits_used column added successfully")
+                
+                # Check if credits_transactions table exists
+                existing_tables = inspector.get_table_names()
+                
+                if 'credits_transactions' not in existing_tables:
+                    print("⚠️ Creating credits_transactions table...")
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS credits_transactions (
+                            id SERIAL PRIMARY KEY,
+                            user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+                            transaction_type VARCHAR(50) NOT NULL,
+                            credits_amount INTEGER NOT NULL,
+                            credits_before INTEGER NOT NULL,
+                            credits_after INTEGER NOT NULL,
+                            description TEXT,
+                            payment_id VARCHAR(255),
+                            order_id VARCHAR(255),
+                            amount_paid DECIMAL(10, 2),
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_credits_transactions_user_id ON credits_transactions(user_id)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_credits_transactions_created_at ON credits_transactions(created_at)"))
+                    print("✅ credits_transactions table created successfully")
+                
+                if 'payment_orders' not in existing_tables:
+                    print("⚠️ Creating payment_orders table...")
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS payment_orders (
+                            id SERIAL PRIMARY KEY,
+                            user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+                            order_id VARCHAR(255) UNIQUE NOT NULL,
+                            amount DECIMAL(10, 2) NOT NULL,
+                            currency VARCHAR(3) DEFAULT 'INR',
+                            credits_amount INTEGER NOT NULL,
+                            status VARCHAR(50) DEFAULT 'created',
+                            payment_id VARCHAR(255),
+                            payment_signature VARCHAR(255),
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_payment_orders_user_id ON payment_orders(user_id)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_payment_orders_order_id ON payment_orders(order_id)"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_payment_orders_status ON payment_orders(status)"))
+                    print("✅ payment_orders table created successfully")
+                
+                conn.commit()
+            print("✅ Credits system tables verified successfully")
+        except Exception as credits_migration_error:
+            print(f"⚠️ Credits migration check: {credits_migration_error}")
+        
         # Create indexes for better query performance
         try:
             from sqlalchemy import inspect, text
