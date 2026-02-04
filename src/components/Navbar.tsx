@@ -133,22 +133,19 @@ export const Navbar = () => {
         </div>
 
         {/* User Menu */}
-        <div className="hidden md:flex items-center space-x-4">
+        <div className="hidden md:flex items-center space-x-3">
           {user ? (
             <>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <button 
                 onClick={handleBuyCredits}
-                className={`border ${
-                  (user.credits || 0) === 0 
-                    ? 'text-red-600 border-red-600 dark:text-red-400 dark:border-red-400 hover:bg-transparent active:bg-transparent' 
-                    : 'text-emerald-600 border-emerald-600 dark:text-emerald-400 dark:border-emerald-400 hover:bg-transparent active:bg-transparent'
-                }`}
+                className="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 hover:border-primary/40 backdrop-blur-sm transition-all duration-300 cursor-pointer group"
+                title="Buy more credits"
               >
-                <Coins className="h-4 w-4 mr-2" />
-                {user.credits || 0} Credits
-              </Button>
+                <Coins className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-primary">
+                  {user.credits || 0}
+                </span>
+              </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -209,7 +206,7 @@ export const Navbar = () => {
                 <>
                   <Button variant="outline" onClick={handleBuyCredits} className="justify-start">
                     <Coins className="h-4 w-4 mr-2" />
-                    {user.credits || 0} Credits - Buy More
+                    Buy Credits
                   </Button>
                   <Button variant="outline" onClick={() => handleNavigation('/profile')}>
                     <User className="h-4 w-4 mr-2" />
