@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, LogOut, User, Menu, Settings, Moon, Sun, Info, HeartPulse, Coins } from 'lucide-react';
+import { Activity, LogOut, User, Menu, Settings, Moon, Sun, Info, Coins, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -43,7 +43,7 @@ export const Navbar = () => {
 
   const getThemeIcon = () => {
     if (theme === 'light') return <Moon className="h-4 w-4 mr-2" />;
-    if (theme === 'dark') return <HeartPulse className="h-4 w-4 mr-2" />;
+    if (theme === 'dark') return <Flame className="h-4 w-4 mr-2" />;
     return <Sun className="h-4 w-4 mr-2" />;
   };
 

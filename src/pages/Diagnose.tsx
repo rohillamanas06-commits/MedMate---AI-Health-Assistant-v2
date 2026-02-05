@@ -514,7 +514,7 @@ export default function Diagnose() {
                 <div className="flex items-center justify-center gap-2 mt-4 text-emerald-600">
                   <Coins className="h-5 w-5" />
                   <span className="text-sm font-medium">
-                    {user?.credits || 0} credits available • 1 credit per diagnosis
+                    1 credit per diagnosis
                   </span>
                 </div>
               </Card>

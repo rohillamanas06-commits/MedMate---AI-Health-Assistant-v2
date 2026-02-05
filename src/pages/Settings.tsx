@@ -78,54 +78,52 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background py-3 px-3 sm:py-8">
-      <div className="container max-w-4xl mx-auto">
-        <div className="mb-4 sm:mb-8 text-center animate-slide-up">
-          <h1 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2 gradient-text">Settings</h1>
-          <p className="text-muted-foreground text-xs sm:text-lg">
+    <div className="min-h-screen bg-background py-4 px-3 sm:py-12">
+      <div className="container max-w-3xl mx-auto">
+        {/* Header */}
+        <div className="mb-6 sm:mb-10 text-center">
+          <h1 className="text-2xl sm:text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            Settings
+          </h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Manage your account and privacy settings
           </p>
         </div>
 
-        <div className="grid gap-3 sm:gap-6">
-          {/* Data Management Section */}
-          <Card className="p-4 sm:p-8 glass animate-fade-in">
-            <h2 className="text-lg sm:text-2xl font-bold mb-2 sm:mb-4">Data Management</h2>
-            <p className="text-muted-foreground text-xs sm:text-base mb-4 sm:mb-6">
-              Permanently delete your chat and diagnosis history from our database.
-            </p>
-
-            <div className="space-y-3 sm:space-y-4">
-              {/* Delete Chat History */}
-              <Card className="p-3 sm:p-4 border-2 border-destructive/20 bg-destructive/5">
-                <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-                  <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
-                    <div className="p-2 rounded-lg bg-destructive/10 flex-shrink-0">
-                      <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
+        <div className="space-y-4 sm:space-y-6">
+          {/* Data Management */}
+          <section>
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3 px-1">
+              Data Management
+            </h2>
+            <Card className="overflow-hidden">
+              <div className="divide-y divide-border">
+                {/* Chat History */}
+                <div className="p-4 sm:p-5 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2.5 rounded-xl bg-destructive/10 shrink-0">
+                      <MessageSquare className="h-5 w-5 text-destructive" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold mb-1 text-sm sm:text-base">Chat History</h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground">
-                        Permanently delete all your AI chat conversation history. This action cannot be undone.
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-sm sm:text-base">Chat History</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                        Delete all AI conversation history
                       </p>
                     </div>
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
-                        variant="destructive"
+                        variant="outline"
                         size="sm"
                         disabled={deletingChat}
-                        className="w-full sm:w-auto"
+                        className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
                       >
                         {deletingChat ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Deleting...
-                          </>
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <>
-                            <Trash2 className="h-4 w-4 mr-2" />
+                            <Trash2 className="h-4 w-4 mr-1.5" />
                             Delete
                           </>
                         )}
@@ -133,61 +131,53 @@ export default function Settings() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-full bg-destructive/10">
-                            <AlertTriangle className="h-6 w-6 text-destructive" />
-                          </div>
-                          <AlertDialogTitle>Delete Chat History?</AlertDialogTitle>
-                        </div>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-destructive" />
+                          Delete Chat History?
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to permanently delete all your chat history? 
-                          This action cannot be undone and all your previous conversations will be lost.
+                          This will permanently delete all your chat history. This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={handleDeleteChatHistory}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          className="bg-destructive hover:bg-destructive/90"
                         >
-                          Yes, Delete All
+                          Delete All
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
-              </Card>
 
-              {/* Delete Diagnosis History */}
-              <Card className="p-3 sm:p-4 border-2 border-destructive/20 bg-destructive/5">
-                <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-                  <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
-                    <div className="p-2 rounded-lg bg-destructive/10 flex-shrink-0">
-                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
+                {/* Diagnosis History */}
+                <div className="p-4 sm:p-5 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-2.5 rounded-xl bg-destructive/10 shrink-0">
+                      <FileText className="h-5 w-5 text-destructive" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold mb-1 text-sm sm:text-base">Diagnosis History</h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground">
-                        Permanently delete all your symptom diagnosis and image analysis history. This action cannot be undone.
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-sm sm:text-base">Diagnosis History</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                        Delete all symptom analyses
                       </p>
                     </div>
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
-                        variant="destructive"
+                        variant="outline"
                         size="sm"
                         disabled={deletingDiagnosis}
-                        className="w-full sm:w-auto"
+                        className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
                       >
                         {deletingDiagnosis ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Deleting...
-                          </>
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <>
-                            <Trash2 className="h-4 w-4 mr-2" />
+                            <Trash2 className="h-4 w-4 mr-1.5" />
                             Delete
                           </>
                         )}
@@ -195,117 +185,107 @@ export default function Settings() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-full bg-destructive/10">
-                            <AlertTriangle className="h-6 w-6 text-destructive" />
-                          </div>
-                          <AlertDialogTitle>Delete Diagnosis History?</AlertDialogTitle>
-                        </div>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-destructive" />
+                          Delete Diagnosis History?
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to permanently delete all your diagnosis history? 
-                          This action cannot be undone and all your previous symptom analyses will be lost.
+                          This will permanently delete all your diagnosis history. This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={handleDeleteDiagnosisHistory}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          className="bg-destructive hover:bg-destructive/90"
                         >
-                          Yes, Delete All
+                          Delete All
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
-              </Card>
-            </div>
-          </Card>
+              </div>
+            </Card>
+          </section>
 
           {/* Account Deletion */}
-          <Card className="p-4 sm:p-8 border border-destructive/20 bg-destructive/5 animate-fade-in">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-destructive/10 flex-shrink-0">
-                  <ShieldAlert className="h-5 w-5 text-destructive" />
+          <section>
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3 px-1">
+              Danger Zone
+            </h2>
+            <Card className="border-destructive/20">
+              <div className="p-4 sm:p-5">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-destructive/10 shrink-0">
+                    <ShieldAlert className="h-5 w-5 text-destructive" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm sm:text-base">Delete Account</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                      Permanently delete your account and all data. A verification code will be sent to {user?.email}.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg sm:text-2xl font-bold">Delete Account</h2>
-                  <p className="text-muted-foreground text-sm sm:text-base">
-                    Permanently delete your MedMate account and all associated data. A verification code will be sent to your registered email {user?.email ? `(${user.email})` : ''}.
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSendAccountDeletionCode}
-                  disabled={sendingDeletionCode}
-                  className="w-full sm:w-auto border-destructive/40 text-destructive hover:bg-destructive/10"
-                >
-                  {sendingDeletionCode ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <MailCheck className="h-4 w-4 mr-2" />
-                      Send Verification Code
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {codeSent && (
-                <div className="space-y-3">
-                  <p className="text-muted-foreground text-sm">
-                    Enter the 6-digit code sent to your email to confirm account deletion.
-                  </p>
-                  <InputOTP
-                    maxLength={6}
-                    value={accountCode}
-                    onChange={(value) => setAccountCode(value)}
-                    disabled={accountDeleting}
-                  >
-                    <InputOTPGroup>
-                      {[0, 1, 2, 3, 4, 5].map((slot) => (
-                        <InputOTPSlot key={slot} index={slot} />
-                      ))}
-                    </InputOTPGroup>
-                  </InputOTP>
+                {!codeSent ? (
                   <Button
-                    variant="destructive"
-                    className="w-full sm:w-auto"
+                    variant="outline"
                     size="sm"
-                    onClick={handleDeleteAccount}
-                    disabled={accountDeleting}
+                    onClick={handleSendAccountDeletionCode}
+                    disabled={sendingDeletionCode}
+                    className="w-full sm:w-auto text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
                   >
-                    {accountDeleting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Deleting Account...
-                      </>
+                    {sendingDeletionCode ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
-                      'Confirm & Delete Account'
+                      <MailCheck className="h-4 w-4 mr-2" />
                     )}
+                    Send Verification Code
                   </Button>
-                </div>
-              )}
-            </div>
-          </Card>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Enter the 6-digit code sent to your email:
+                    </p>
+                    <InputOTP
+                      maxLength={6}
+                      value={accountCode}
+                      onChange={(value) => setAccountCode(value)}
+                      disabled={accountDeleting}
+                    >
+                      <InputOTPGroup>
+                        {[0, 1, 2, 3, 4, 5].map((slot) => (
+                          <InputOTPSlot key={slot} index={slot} />
+                        ))}
+                      </InputOTPGroup>
+                    </InputOTP>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDeleteAccount}
+                      disabled={accountDeleting}
+                      className="w-full sm:w-auto"
+                    >
+                      {accountDeleting ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : null}
+                      Confirm & Delete Account
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </section>
 
-          {/* Warning Card */}
-          <Card className="p-3 sm:p-6 bg-yellow-500/10 border-yellow-500/20">
-            <div className="flex items-start gap-2 sm:gap-3">
-              <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
-                <h3 className="font-semibold text-yellow-600 mb-1 text-sm sm:text-base">Important Notice</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  Deleting your history is permanent and irreversible. Once deleted, you will not be able to recover any of your data. 
-                  Make sure you really want to delete this information before proceeding.
+          {/* Warning */}
+          <Card className="bg-amber-500/5 border-amber-500/20">
+            <div className="p-4 flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-medium text-amber-600 text-sm">Important Notice</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                  Deleting data is permanent and cannot be undone. Please make sure you want to proceed before confirming.
                 </p>
               </div>
             </div>

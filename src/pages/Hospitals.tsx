@@ -81,29 +81,7 @@ export default function Hospitals() {
           </p>
         </div>
 
-        {/* Search Section */}
-        <Card className="p-8 mb-8 glass animate-fade-in">
-          <div className="max-w-md mx-auto text-center">
-            <p className="text-muted-foreground mb-6">
-              Click the button below to find hospitals near your current location
-            </p>
-            <Button
-              onClick={handleCurrentLocation}
-              disabled={loading}
-              size="lg"
-              className="w-full"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Navigation className="h-4 w-4 mr-2" />
-              )}
-              Find Nearby Hospitals
-            </Button>
-          </div>
-        </Card>
 
-        {/* Results */}
         {loading ? (
           <Card className="p-12 text-center glass">
             <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
